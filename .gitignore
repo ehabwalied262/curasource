@@ -30,7 +30,7 @@ frontend/.next/
 node_modules/
 
 # Sources (large PDFs - track separately if needed)
-Sources/
+/Sources/
 
 # OS
 .DS_Store
