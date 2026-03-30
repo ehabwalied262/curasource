@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # 1. Qdrant Vector Database
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: curasource_qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+  # 2. FastAPI Backend
+  backend:
+    build: .
+    container_name: curasource_backend
+    ports:
+      - "${PORT:-8001}:${PORT:-8001}"
+    env_file:
+      - .env
+    environment:
+      # Override Qdrant URL to use the service name inside Docker network
+      QDRANT_URL: http://qdrant:6333
+    depends_on:
+      - qdrant
+    restart: unless-stopped
+
+  # 3. PostgreSQL (reserved for future user/session storage)
+  postgres:
+    image: postgres:16-alpine
+    container_name: curasource_postgres
+    environment:
+      POSTGRES_USER: curasource_user
+      POSTGRES_PASSWORD: curasource_password
+      POSTGRES_DB: curasource_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # 4. Redis (reserved for future caching)
+  redis:
+    image: redis:7-alpine
+    container_name: curasource_redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  qdrant_data:
+  postgres_data:
+  redis_data:

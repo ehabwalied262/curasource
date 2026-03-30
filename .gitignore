@@ -1,0 +1,36 @@
+# Environment secrets - NEVER commit these
+.env
+.env.local
+.env.*.local
+
+# Python
+.venv/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# Claude Code internal files
+CLAUDE.md
+AGENTS.md
+frontend/CLAUDE.md
+frontend/AGENTS.md
+.claude/
+
+# Qdrant local storage
+qdrant_storage/
+
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
+node_modules/
+
+# Sources (large PDFs - track separately if needed)
+Sources/
+
+# OS
+.DS_Store
+Thumbs.db
