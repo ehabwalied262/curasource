@@ -25,14 +25,13 @@ if not HF_TOKEN:
 # --------------- ML Models ---------------
 from qdrant_client import QdrantClient
 from qdrant_client.http import models as qdrant_models
-from sentence_transformers import SentenceTransformer
 
-logger.info("Loading BAAI/bge-large-en-v1.5 embedding model...")
-embedder = SentenceTransformer("BAAI/bge-large-en-v1.5")
 qdrant = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
 
-logger.info("Connecting to Llama 3 via Hugging Face Inference API...")
-llm_client = InferenceClient("meta-llama/Meta-Llama-3-8B-Instruct", token=HF_TOKEN)
+# Both embeddings and LLM go through HF Inference API —
+# no local model downloads, no torch, tiny Docker image.
+logger.info("Connecting to HF Inference API (embeddings + LLM)...")
+hf_client = InferenceClient(token=HF_TOKEN)
 
 # --------------- Pydantic Models ---------------
 class ChatRequest(BaseModel):
@@ -72,9 +71,17 @@ app.add_middleware(
 )
 
 # --------------- Search Logic ---------------
+def embed(text: str) -> list:
+    """Embed text via HF Inference API using the same BGE model used during ingestion."""
+    response = hf_client.feature_extraction(text, model="BAAI/bge-large-en-v1.5")
+    # feature_extraction returns a nested list — flatten to 1D
+    vector = response[0] if isinstance(response[0], list) else response
+    return vector if isinstance(vector, list) else vector.tolist()
+
+
 def search_qdrant(text: str, domain_filter: Optional[str] = None, limit: int = 3) -> list:
     """Search the Qdrant vector database and return matching chunks."""
-    vector = embedder.encode(text).tolist()
+    vector = embed(text)
 
     query_filter = None
     if domain_filter:
@@ -134,7 +141,8 @@ def chat(req: ChatRequest):
     logger.info("Generating response from Llama 3...")
     response_text = ""
     try:
-        for message in llm_client.chat_completion(
+        for message in hf_client.chat_completion(
+            model="meta-llama/Meta-Llama-3-8B-Instruct",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
