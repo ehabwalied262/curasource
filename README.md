@@ -1,5 +1,5 @@
 ---
-title: CuraSource
+title: CuraSource API
 emoji: 🏥
 colorFrom: green
 colorTo: blue
