@@ -6,6 +6,7 @@ interface ChatState {
   domain: Domain;
   isLoading: boolean;
   activeCitation: Citation | null;
+  sidebarOpen: boolean;
 
   // Actions
   setDomain: (domain: Domain) => void;
@@ -14,13 +15,15 @@ interface ChatState {
   setLoading: (loading: boolean) => void;
   clearChat: () => void;
   setActiveCitation: (citation: Citation | null) => void;
+  toggleSidebar: () => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
   messages: [],
-  domain: "medical", // Defaulting to medical per ARCHITECTURE.md
+  domain: "medical",
   isLoading: false,
-  activeCitation: null, // <-- initialize here
+  activeCitation: null,
+  sidebarOpen: true,
 
   setDomain: (domain) => set({ domain }),
   
@@ -47,4 +50,5 @@ export const useChatStore = create<ChatState>((set) => ({
   clearChat: () => set({ messages: [] }),
 
   setActiveCitation: (citation) => set({ activeCitation: citation }),
+  toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
 }));

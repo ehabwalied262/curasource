@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, DM_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { Sidebar } from "@/components/layout/Sidebar";
+import { AppShell } from "@/components/layout/AppShell";
 
 const fontDisplay = Fraunces({ subsets: ["latin"], variable: "--font-display", display: "swap" });
 const fontBody = DM_Sans({ subsets: ["latin"], variable: "--font-body", display: "swap" });
@@ -14,20 +14,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${fontDisplay.variable} ${fontBody.variable} ${fontMono.variable}`}>
-      <body className="font-body antialiased bg-[#FAFAF9] text-stone-800 overflow-hidden">
-        <div className="flex h-screen w-full">
-          
-          {/* Desktop Sidebar - Hidden on mobile, visible on medium screens and up */}
-          <div className="hidden md:flex h-full">
-            <Sidebar />
-          </div>
-
-          <main className="flex-1 relative overflow-hidden bg-white shadow-[-4px_0_24px_-12px_rgba(0,0,0,0.05)]">
-            {children}
-          </main>
-          
-        </div>
+    <html lang="en" className={`dark ${fontDisplay.variable} ${fontBody.variable} ${fontMono.variable}`}>
+      <body className="font-body antialiased bg-[#212121] text-stone-100 overflow-hidden">
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

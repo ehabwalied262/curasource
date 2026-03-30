@@ -10,30 +10,27 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { SendHorizontal, HeartPulse, Dumbbell, Apple, Menu } from 'lucide-react';
+import { SendHorizontal, HeartPulse, Dumbbell, Apple, Menu, PanelLeftOpen } from 'lucide-react';
 
 export function ChatInterface() {
     const [input, setInput] = useState("");
-    const { messages, domain, setDomain, isLoading } = useChatStore();
+    const { messages, domain, setDomain, isLoading, sidebarOpen, toggleSidebar } = useChatStore();
     const { sendMessage } = useChat();
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // Auto-scroll to bottom when new messages arrive
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
     }, [messages]);
 
-    // The fixed send logic
     const handleSend = async () => {
         if (!input.trim() || isLoading) return;
         const currentInput = input;
-        setInput(""); // Clear immediately for snappy UI
+        setInput("");
         await sendMessage(currentInput);
     };
 
-    // Allow sending with the Enter key
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -42,76 +39,100 @@ export function ChatInterface() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-[#FAFAF9]">
+        <div className="flex flex-col h-full bg-[#212121]">
+
             {/* Header */}
-            <header className="h-16 border-b border-stone-200 bg-white/80 backdrop-blur-md flex items-center justify-between px-4 md:px-6 sticky top-0 z-10">
-                <div className="flex items-center gap-3">
-                    {/* Mobile Menu Trigger */}
+            <header className="h-14 border-b border-white/10 bg-[#212121]/80 backdrop-blur-md flex items-center justify-between px-4 sticky top-0 z-10">
+                <div className="flex items-center gap-2">
+
+                    {/* Mobile menu */}
                     <Sheet>
                         <SheetTrigger asChild>
-                            <Button variant="ghost" size="icon" className="md:hidden -ml-2 text-stone-600">
-                                <Menu size={20} />
+                            <Button variant="ghost" size="icon" className="md:hidden h-8 w-8 text-stone-400 hover:text-stone-100 hover:bg-white/10">
+                                <Menu size={18} />
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" className="p-0 w-[280px]">
+                        <SheetContent side="left" className="p-0 w-[260px] bg-[#171717] border-r border-white/10">
                             <Sidebar />
                         </SheetContent>
                     </Sheet>
-                    <h1 className="font-display font-semibold text-lg text-[#0D1B2A] hidden sm:block">CuraSource</h1>
+
+                    {/* Desktop sidebar open button — only shown when sidebar is closed */}
+                    {!sidebarOpen && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={toggleSidebar}
+                            className="hidden md:flex h-8 w-8 text-stone-400 hover:text-stone-100 hover:bg-white/10"
+                        >
+                            <PanelLeftOpen size={18} />
+                        </Button>
+                    )}
+
+                    <span className="font-display font-semibold text-stone-200 hidden sm:block">
+                        CuraSource
+                    </span>
                 </div>
 
+                {/* Domain selector */}
                 <div className="flex items-center gap-2">
-                    <span className="hidden sm:inline-block text-xs font-bold text-stone-400 uppercase mr-2">Domain:</span>
+                    <span className="hidden sm:inline-block text-[10px] font-bold text-stone-500 uppercase tracking-widest mr-1">Domain</span>
                     <Select value={domain} onValueChange={(v: any) => setDomain(v)}>
-                        <SelectTrigger className="w-[140px] sm:w-[160px] h-9 bg-stone-50 border-stone-200">
+                        <SelectTrigger className="w-[130px] h-8 bg-white/5 border-white/10 text-stone-300 text-sm">
                             <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="medical"><div className="flex items-center gap-2"><HeartPulse size={14} /> Medical</div></SelectItem>
-                            <SelectItem value="fitness"><div className="flex items-center gap-2"><Dumbbell size={14} /> Fitness</div></SelectItem>
-                            <SelectItem value="nutrition"><div className="flex items-center gap-2"><Apple size={14} /> Nutrition</div></SelectItem>
+                        <SelectContent className="bg-[#2a2a2a] border-white/10 text-stone-200">
+                            <SelectItem value="medical"><div className="flex items-center gap-2"><HeartPulse size={13} /> Medical</div></SelectItem>
+                            <SelectItem value="fitness"><div className="flex items-center gap-2"><Dumbbell size={13} /> Fitness</div></SelectItem>
+                            <SelectItem value="nutrition"><div className="flex items-center gap-2"><Apple size={13} /> Nutrition</div></SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
             </header>
 
-            {/* Messages Area */}
+            {/* Messages */}
             <div ref={scrollRef} className="flex-1 overflow-y-auto scroll-smooth">
                 {messages.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-center p-6 md:p-8">
-                        <h2 className="font-display text-2xl md:text-3xl text-[#0D1B2A] mb-4">How can I assist your expertise today?</h2>
-                        <p className="text-stone-500 text-sm md:text-base max-w-md">Select a domain above and ask a question grounded in medical and fitness literature.</p>
+                    <div className="h-full flex flex-col items-center justify-center text-center p-8">
+                        <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center mb-6">
+                            <HeartPulse className="text-emerald-400" size={24} />
+                        </div>
+                        <h2 className="font-display text-2xl md:text-3xl text-stone-100 mb-3">
+                            How can I assist your expertise today?
+                        </h2>
+                        <p className="text-stone-500 text-sm max-w-md">
+                            Select a domain above and ask a question grounded in medical and fitness literature.
+                        </p>
                     </div>
                 ) : (
                     messages.map((m) => <ChatMessage key={m.id} message={m} />)
                 )}
             </div>
 
-            {/* Input Area */}
-            <div className="p-4 md:p-8 bg-gradient-to-t from-[#FAFAF9] via-[#FAFAF9] to-transparent">
-                <div className="max-w-3xl mx-auto relative group">
+            {/* Input */}
+            <div className="p-4 md:p-6 bg-gradient-to-t from-[#212121] via-[#212121]/90 to-transparent">
+                <div className="max-w-3xl mx-auto relative">
                     <Input
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
                         disabled={isLoading}
                         placeholder={`Ask a ${domain} question...`}
-                        className="w-full h-12 md:h-14 pl-4 md:pl-6 pr-14 rounded-xl md:rounded-2xl border-stone-200 shadow-sm focus-visible:ring-stone-400 transition-all bg-white text-base"
+                        className="w-full h-12 md:h-14 pl-5 pr-14 rounded-xl border-white/10 bg-[#2a2a2a] text-stone-100 placeholder:text-stone-500 focus-visible:ring-emerald-500/50 text-base"
                     />
                     <Button
                         onClick={handleSend}
                         disabled={isLoading || !input.trim()}
-                        className="absolute right-1.5 top-1.5 md:right-2 md:top-2 h-9 w-9 md:h-10 md:w-10 rounded-lg md:rounded-xl bg-[#0D1B2A] hover:bg-[#1B2E45] disabled:opacity-50"
+                        className="absolute right-2 top-1.5 md:top-2 h-9 w-9 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 disabled:cursor-not-allowed"
                     >
-                        <SendHorizontal size={18} />
+                        <SendHorizontal size={16} />
                     </Button>
                 </div>
-                <p className="text-[10px] text-center text-stone-400 mt-3 md:mt-4 uppercase tracking-[0.1em] md:tracking-[0.2em] px-4">
-                    Grounded in Harrison's, Davidson's, and Clinical Fitness Journals
+                <p className="text-[10px] text-center text-stone-600 mt-3 uppercase tracking-widest">
+                    Grounded in Harrison&apos;s, Davidson&apos;s, and Clinical Fitness Journals
                 </p>
             </div>
 
-            {/* Global Modals/Drawers */}
             <SourcePanel />
         </div>
     );
