@@ -12,12 +12,13 @@ import os
 load_dotenv()
 
 # --------------- Configuration ---------------
-HF_TOKEN = os.getenv("HF_TOKEN")
-QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
-QDRANT_API_KEY = os.getenv("QDRANT_API_KEY") or None
-COLLECTION_NAME = os.getenv("COLLECTION_NAME", "curasource_chunks")
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
-PORT = int(os.getenv("PORT", "8001"))
+# .strip() guards against trailing newlines when secrets are pasted in HF Spaces UI
+HF_TOKEN = (os.getenv("HF_TOKEN") or "").strip()
+QDRANT_URL = (os.getenv("QDRANT_URL") or "http://localhost:6333").strip()
+QDRANT_API_KEY = (os.getenv("QDRANT_API_KEY") or "").strip() or None
+COLLECTION_NAME = (os.getenv("COLLECTION_NAME") or "curasource_chunks").strip()
+CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")]
+PORT = int((os.getenv("PORT") or "8001").strip())
 
 if not HF_TOKEN:
     logger.error("HF_TOKEN not found! Make sure it is set in your .env file.")
