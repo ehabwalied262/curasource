@@ -48,6 +48,7 @@ export function AssistantActions({ text, onRetry }: AssistantActionsProps) {
                 {
                     method: "POST",
                     headers: {
+                        "Authorization": `Bearer ${apiKey}`,
                         "xi-api-key": apiKey,
                         "Content-Type": "application/json",
                     },
