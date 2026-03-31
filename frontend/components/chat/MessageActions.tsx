@@ -40,25 +40,12 @@ export function AssistantActions({ text, onRetry }: AssistantActionsProps) {
 
         setAudioState("loading");
         try {
-            const apiKey = process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY;
-            if (!apiKey) throw new Error("ElevenLabs API key not set");
-
-            const res = await fetch(
-                "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM",
-                {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${apiKey}`,
-                        "xi-api-key": apiKey,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        text: stripMarkdown(text).slice(0, 2500),
-                        model_id: "eleven_monolingual_v1",
-                        voice_settings: { stability: 0.5, similarity_boost: 0.75 },
-                    }),
-                }
-            );
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
+            const res = await fetch(`${apiBase}/tts`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text: stripMarkdown(text) }),
+            });
 
             if (!res.ok) throw new Error("TTS request failed");
 

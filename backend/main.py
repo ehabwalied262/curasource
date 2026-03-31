@@ -21,6 +21,8 @@ QDRANT_API_KEY = (os.getenv("QDRANT_API_KEY") or "").strip() or None
 COLLECTION_NAME = (os.getenv("COLLECTION_NAME") or "curasource_chunks").strip()
 CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")]
 PORT = int((os.getenv("PORT") or "8001").strip())
+ELEVENLABS_API_KEY = (os.getenv("ELEVENLABS_API_KEY") or "").strip()
+ELEVENLABS_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"  # Rachel
 
 if not HF_TOKEN:
     logger.error("HF_TOKEN not found! Make sure it is set in your .env file.")
@@ -248,6 +250,42 @@ def chat_stream(req: ChatRequest):
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
     return StreamingResponse(token_generator(), media_type="text/event-stream")
+
+
+class TTSRequest(BaseModel):
+    text: str = Field(..., max_length=5000)
+
+@app.post("/tts")
+def tts(req: TTSRequest):
+    """Proxy TTS request to ElevenLabs — keeps API key server-side."""
+    if not ELEVENLABS_API_KEY:
+        raise HTTPException(status_code=503, detail="TTS not configured")
+
+    import httpx
+    try:
+        resp = httpx.post(
+            f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}",
+            headers={
+                "xi-api-key": ELEVENLABS_API_KEY,
+                "Content-Type": "application/json",
+            },
+            json={
+                "text": req.text[:2500],
+                "model_id": "eleven_monolingual_v1",
+                "voice_settings": {"stability": 0.5, "similarity_boost": 0.75},
+            },
+            timeout=30,
+        )
+        if resp.status_code != 200:
+            logger.error(f"ElevenLabs error {resp.status_code}: {resp.text}")
+            raise HTTPException(status_code=502, detail="TTS generation failed")
+
+        return StreamingResponse(
+            iter([resp.content]),
+            media_type="audio/mpeg",
+        )
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="TTS request timed out")
 
 
 @app.get("/health")
