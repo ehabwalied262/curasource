@@ -14,6 +14,7 @@ interface ChatState {
   addMessage: (message: Message) => void;
   updateLastAssistantMessage: (content: string, citations?: Citation[]) => void;
   appendToLastAssistantMessage: (token: string) => void;
+  deleteFromMessage: (messageId: string) => void;
   setLoading: (loading: boolean) => void;
   setStreaming: (streaming: boolean) => void;
   clearChat: () => void;
@@ -56,6 +57,13 @@ export const useChatStore = create<ChatState>((set) => ({
         };
       }
       return { messages: newMessages };
+    }),
+
+  deleteFromMessage: (messageId) =>
+    set((state) => {
+      const idx = state.messages.findIndex((m) => m.id === messageId);
+      if (idx === -1) return state;
+      return { messages: state.messages.slice(0, idx) };
     }),
 
   setLoading: (isLoading) => set({ isLoading }),

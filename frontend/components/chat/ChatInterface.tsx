@@ -118,7 +118,8 @@ export function ChatInterface() {
                         onKeyDown={handleKeyDown}
                         disabled={isLoading}
                         placeholder={`Ask a ${domain} question...`}
-                        className="w-full h-12 md:h-14 pl-5 pr-14 rounded-xl border-white/10 bg-[#2a2a2a] text-stone-100 placeholder:text-stone-500 focus-visible:ring-emerald-500/50 text-[17px] font-tiempos"
+                        className="w-full h-12 md:h-14 pl-5 pr-14 rounded-xl border-white/10 bg-[#2a2a2a] text-stone-100 placeholder:text-stone-500 focus-visible:ring-emerald-500/50"
+                        style={{ fontFamily: "var(--font-tiempos, Georgia, serif)", fontSize: "17px" }}
                     />
                     <Button
                         onClick={handleSend}
