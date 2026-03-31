@@ -39,7 +39,7 @@ export function ChatInterface() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-[#212121]">
+        <div className="flex flex-col h-[100dvh] bg-[#212121]">
 
             {/* Header */}
             <header className="h-14 border-b border-white/10 bg-[#212121]/80 backdrop-blur-md flex items-center justify-between px-4 sticky top-0 z-10">
@@ -93,15 +93,15 @@ export function ChatInterface() {
             {/* Messages */}
             <div ref={scrollRef} className="flex-1 overflow-y-auto scroll-smooth">
                 {messages.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                        <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center mb-6">
-                            <HeartPulse className="text-emerald-400" size={24} />
+                    <div className="h-full flex flex-col items-center justify-center text-center px-6 py-8">
+                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center mb-4 md:mb-6">
+                            <HeartPulse className="text-emerald-400" size={20} />
                         </div>
-                        <h2 className="font-display text-2xl md:text-3xl text-stone-100 mb-3">
+                        <h2 className="font-display text-xl md:text-3xl text-stone-100 mb-2 md:mb-3 leading-snug">
                             How can I assist your expertise today?
                         </h2>
-                        <p className="text-stone-500 text-sm max-w-md">
-                            Select a domain above and ask a question grounded in medical and fitness literature.
+                        <p className="text-stone-500 text-sm max-w-xs md:max-w-md">
+                            Select a domain and ask a question grounded in medical and fitness literature.
                         </p>
                     </div>
                 ) : (
@@ -110,7 +110,7 @@ export function ChatInterface() {
             </div>
 
             {/* Input */}
-            <div className="p-4 md:p-6 bg-gradient-to-t from-[#212121] via-[#212121]/90 to-transparent">
+            <div className="shrink-0 px-3 pt-3 pb-4 md:px-6 md:pt-4 md:pb-6 bg-gradient-to-t from-[#212121] via-[#212121]/95 to-transparent" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
                 <div className="max-w-3xl mx-auto relative">
                     <Input
                         value={input}
@@ -118,18 +118,18 @@ export function ChatInterface() {
                         onKeyDown={handleKeyDown}
                         disabled={isLoading}
                         placeholder={`Ask a ${domain} question...`}
-                        className="w-full h-12 md:h-14 pl-5 pr-14 rounded-xl border-white/10 bg-[#2a2a2a] text-stone-100 placeholder:text-stone-500 focus-visible:ring-emerald-500/50"
-                        style={{ fontFamily: "var(--font-tiempos, Georgia, serif)", fontSize: "17px" }}
+                        className="w-full h-12 md:h-14 pl-4 pr-14 rounded-xl border-white/10 bg-[#2a2a2a] text-stone-100 placeholder:text-stone-500 focus-visible:ring-emerald-500/50"
+                        style={{ fontFamily: "var(--font-tiempos, Georgia, serif)", fontSize: "16px" }}
                     />
                     <Button
                         onClick={handleSend}
                         disabled={isLoading || !input.trim()}
-                        className="absolute right-2 top-1.5 md:top-2 h-9 w-9 rounded-lg bg-white hover:bg-stone-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                        className="absolute right-2 top-1.5 h-9 w-9 rounded-lg bg-white hover:bg-stone-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                     >
-                        <SendHorizontal size={16} className="text-[#212121]" />
+                        <SendHorizontal size={15} className="text-[#212121]" />
                     </Button>
                 </div>
-                <p className="text-[10px] text-center text-stone-600 mt-3 uppercase tracking-widest">
+                <p className="text-[9px] md:text-[10px] text-center text-stone-600 mt-2 uppercase tracking-widest">
                     Grounded in Harrison&apos;s, Davidson&apos;s, and Clinical Fitness Journals
                 </p>
             </div>
