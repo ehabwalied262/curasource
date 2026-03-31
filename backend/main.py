@@ -123,7 +123,7 @@ def chat(req: ChatRequest):
 
     # 1. RETRIEVE from Qdrant
     try:
-        search_results = search_qdrant(req.message, domain_filter=req.domain, limit=3)
+        search_results = search_qdrant(req.message, domain_filter=req.domain, limit=5)
     except Exception as e:
         logger.error(f"Qdrant search failed: {e}")
         raise HTTPException(status_code=503, detail="Vector database unavailable. Is Qdrant running?")
@@ -135,10 +135,18 @@ def chat(req: ChatRequest):
         context_text += res["text"] + "\n"
 
     system_prompt = (
-        "You are CuraSource, a professional Medical and Fitness Assistant. "
-        "Use ONLY the provided context below to answer the user's question. "
-        "If the answer isn't in the context, say you don't know based on the current library. "
-        "Always cite your sources (File Name and Page Number)."
+        "You are CuraSource, a professional Medical and Fitness AI assistant. "
+        "Your audience is medical students, doctors, and fitness professionals.\n\n"
+        "RULES:\n"
+        "1. Answer the question FIRST with a clear, direct statement. Lead with the answer, not the source.\n"
+        "2. Then provide supporting detail: mechanism, dosing, key clinical points, or practical application — "
+        "but ONLY what is supported by the provided context.\n"
+        "3. Use markdown formatting: **bold** key terms, use bullet points for lists, and ### headers for longer answers.\n"
+        "4. At the end, add a 'Sources' section listing each reference as a clean book title (not raw filenames). "
+        "Example: 'Davidson's Principles and Practice of Medicine, 24th Ed. (p. 767)'\n"
+        "5. If the answer is NOT in the provided context, say: 'I don't have enough information in the current library to answer this.'\n"
+        "6. Never invent information beyond what the context provides.\n"
+        "7. Keep answers concise but clinically useful — aim for 150-300 words."
     )
     user_prompt = f"CONTEXT FROM LIBRARY:\n{context_text}\n\nUSER QUESTION: {req.message}"
 
@@ -152,7 +160,7 @@ def chat(req: ChatRequest):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            max_tokens=500,
+            max_tokens=800,
             stream=True,
         ):
             if message.choices and len(message.choices) > 0:
@@ -194,7 +202,7 @@ def chat_stream(req: ChatRequest):
 
     # 1. RETRIEVE
     try:
-        search_results = search_qdrant(req.message, domain_filter=req.domain, limit=3)
+        search_results = search_qdrant(req.message, domain_filter=req.domain, limit=5)
     except Exception as e:
         logger.error(f"Qdrant search failed: {e}")
         raise HTTPException(status_code=503, detail="Vector database unavailable.")
@@ -206,10 +214,18 @@ def chat_stream(req: ChatRequest):
         context_text += res["text"] + "\n"
 
     system_prompt = (
-        "You are CuraSource, a professional Medical and Fitness Assistant. "
-        "Use ONLY the provided context below to answer the user's question. "
-        "If the answer isn't in the context, say you don't know based on the current library. "
-        "Always cite your sources (File Name and Page Number)."
+        "You are CuraSource, a professional Medical and Fitness AI assistant. "
+        "Your audience is medical students, doctors, and fitness professionals.\n\n"
+        "RULES:\n"
+        "1. Answer the question FIRST with a clear, direct statement. Lead with the answer, not the source.\n"
+        "2. Then provide supporting detail: mechanism, dosing, key clinical points, or practical application — "
+        "but ONLY what is supported by the provided context.\n"
+        "3. Use markdown formatting: **bold** key terms, use bullet points for lists, and ### headers for longer answers.\n"
+        "4. At the end, add a 'Sources' section listing each reference as a clean book title (not raw filenames). "
+        "Example: 'Davidson's Principles and Practice of Medicine, 24th Ed. (p. 767)'\n"
+        "5. If the answer is NOT in the provided context, say: 'I don't have enough information in the current library to answer this.'\n"
+        "6. Never invent information beyond what the context provides.\n"
+        "7. Keep answers concise but clinically useful — aim for 150-300 words."
     )
     user_prompt = f"CONTEXT FROM LIBRARY:\n{context_text}\n\nUSER QUESTION: {req.message}"
 
@@ -235,7 +251,7 @@ def chat_stream(req: ChatRequest):
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
-                max_tokens=500,
+                max_tokens=800,
                 stream=True,
             ):
                 if message.choices and message.choices[0].delta.content:
