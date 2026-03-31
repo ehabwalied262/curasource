@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useChatStore } from "@/stores/chatStore";
@@ -20,6 +20,7 @@ import {
 
 export function Sidebar() {
     const pathname = usePathname();
+    const router = useRouter();
     const {
         toggleSidebar,
         newChat,
@@ -30,6 +31,16 @@ export function Sidebar() {
     } = useChatStore();
 
     const isActive = (path: string) => pathname === path || pathname.startsWith(`${path}/`);
+
+    const handleNewChat = () => {
+        newChat();
+        if (pathname !== "/chat") router.push("/chat");
+    };
+
+    const handleLoadConversation = (id: string) => {
+        loadConversation(id);
+        if (pathname !== "/chat") router.push("/chat");
+    };
 
     // Group conversations by date
     const now = Date.now();
@@ -61,7 +72,7 @@ export function Sidebar() {
             {/* New Chat */}
             <div className="p-3">
                 <Button
-                    onClick={newChat}
+                    onClick={handleNewChat}
                     className="w-full justify-start gap-2 bg-white/5 text-stone-300 border border-white/10 hover:bg-white/10 hover:text-stone-100"
                     variant="outline"
                 >
@@ -80,21 +91,21 @@ export function Sidebar() {
                             label="Today"
                             items={today}
                             activeId={activeConversationId}
-                            onLoad={loadConversation}
+                            onLoad={handleLoadConversation}
                             onDelete={deleteConversation}
                         />
                         <ConversationGroup
                             label="Yesterday"
                             items={yesterday}
                             activeId={activeConversationId}
-                            onLoad={loadConversation}
+                            onLoad={handleLoadConversation}
                             onDelete={deleteConversation}
                         />
                         <ConversationGroup
                             label="Older"
                             items={older}
                             activeId={activeConversationId}
-                            onLoad={loadConversation}
+                            onLoad={handleLoadConversation}
                             onDelete={deleteConversation}
                         />
                     </>
