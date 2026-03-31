@@ -1,8 +1,10 @@
 import uvicorn
+import json
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, AsyncGenerator
 from huggingface_hub import InferenceClient
 from loguru import logger
 from dotenv import load_dotenv
@@ -181,6 +183,71 @@ def chat(req: ChatRequest):
         "answer": response_text,
         "sources_used": sources_used,
     }
+
+
+@app.post("/chat/stream")
+def chat_stream(req: ChatRequest):
+    """Streaming endpoint — sends tokens via SSE as they arrive from Llama 3."""
+    logger.info(f"Stream request: '{req.message}' [domain={req.domain}]")
+
+    # 1. RETRIEVE
+    try:
+        search_results = search_qdrant(req.message, domain_filter=req.domain, limit=3)
+    except Exception as e:
+        logger.error(f"Qdrant search failed: {e}")
+        raise HTTPException(status_code=503, detail="Vector database unavailable.")
+
+    # 2. BUILD context
+    context_text = ""
+    for idx, res in enumerate(search_results):
+        context_text += f"\n--- Source {idx+1} (File: {res['source']}, Page: {res['page']}) ---\n"
+        context_text += res["text"] + "\n"
+
+    system_prompt = (
+        "You are CuraSource, a professional Medical and Fitness Assistant. "
+        "Use ONLY the provided context below to answer the user's question. "
+        "If the answer isn't in the context, say you don't know based on the current library. "
+        "Always cite your sources (File Name and Page Number)."
+    )
+    user_prompt = f"CONTEXT FROM LIBRARY:\n{context_text}\n\nUSER QUESTION: {req.message}"
+
+    # 3. Build citations upfront (sent at end)
+    citations = []
+    for idx, res in enumerate(search_results):
+        citations.append(CitationDetail(
+            index=idx + 1,
+            source_title=res["source"],
+            edition="",
+            chapter=res.get("chapter", ""),
+            page_number=res.get("page", 0),
+            excerpt=res["text"][:300],
+            verification_status="verified" if res["score"] > 0.7 else "low_confidence",
+            verification_score=res["score"],
+        ))
+
+    def token_generator():
+        try:
+            for message in hf_client.chat_completion(
+                model="meta-llama/Meta-Llama-3-8B-Instruct",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                max_tokens=500,
+                stream=True,
+            ):
+                if message.choices and message.choices[0].delta.content:
+                    token = message.choices[0].delta.content
+                    yield f"data: {json.dumps({'token': token})}\n\n"
+
+            # Final event with citations
+            yield f"data: {json.dumps({'done': True, 'citations': [c.model_dump() for c in citations]})}\n\n"
+
+        except Exception as e:
+            logger.error(f"Streaming generation failed: {e}")
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+    return StreamingResponse(token_generator(), media_type="text/event-stream")
 
 
 @app.get("/health")

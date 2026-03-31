@@ -6,6 +6,7 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost
 
 export const ENDPOINTS = {
     chat: `${API_BASE_URL}/chat`,
-    sources: `${API_BASE_URL}/sources`,   // Ready for when we build the Corpus Browser
-    feedback: `${API_BASE_URL}/feedback`, // Ready for when we build the thumbs up/down
+    chatStream: `${API_BASE_URL}/chat/stream`,
+    sources: `${API_BASE_URL}/sources`,
+    feedback: `${API_BASE_URL}/feedback`,
 } as const;
