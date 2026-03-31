@@ -4,11 +4,21 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Message, Citation } from "@/types";
-import { CheckCircle2, AlertCircle, BookOpen, HeartPulse, Pencil, Check, X } from "lucide-react";
+import { CheckCircle2, AlertCircle, BookOpen, HeartPulse, Pencil, Check, X, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useChatStore } from "@/stores/chatStore";
 import { useChat } from "@/hooks/useChat";
 import { AssistantActions } from "./MessageActions";
+
+/** Turns raw PDF filenames into clean book titles */
+function cleanSourceTitle(raw: string): string {
+    return raw
+        .replace(/\.pdf$/i, "")
+        .replace(/_/g, " ")
+        .replace(/\s+/g, " ")
+        .replace(/(\d+)(th|st|nd|rd)Ed/gi, "$1$2 Ed.")
+        .trim();
+}
 
 export function ChatMessage({ message }: { message: Message }) {
     const isAssistant = message.role === "assistant";
@@ -20,7 +30,6 @@ export function ChatMessage({ message }: { message: Message }) {
 
     const { retryMessage, editAndResend } = useChat();
 
-    // Edit state for user messages
     const [isEditing, setIsEditing] = useState(false);
     const [editValue, setEditValue] = useState(message.content);
 
@@ -37,27 +46,26 @@ export function ChatMessage({ message }: { message: Message }) {
 
     return (
         <div className={cn(
-            "w-full py-7 px-4 group",
-            isAssistant ? "bg-transparent" : "bg-white/[0.03]"
+            "w-full py-8 px-4 group",
+            isAssistant ? "bg-transparent" : "bg-white/[0.02]"
         )}>
             <div className="max-w-3xl mx-auto flex gap-4">
 
-                {/* Avatar — only for assistant */}
                 {isAssistant && (
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center shrink-0 mt-1">
                         <HeartPulse className="text-emerald-400" size={15} strokeWidth={2.5} />
                     </div>
                 )}
 
-                <div className={cn("flex flex-col gap-2 w-full overflow-hidden", !isAssistant && "pl-12")}>
-                    <span className="text-[11px] font-bold text-stone-500 uppercase tracking-widest">
+                <div className={cn("flex flex-col w-full overflow-hidden", !isAssistant && "pl-12")}>
+                    <span className="text-[11px] font-bold text-stone-500 uppercase tracking-widest mb-3">
                         {isAssistant ? "CuraSource AI" : "You"}
                     </span>
 
-                    {/* USER MESSAGE */}
+                    {/* ── USER MESSAGE ── */}
                     {!isAssistant && (
                         isEditing ? (
-                            <div className="flex flex-col gap-2">
+                            <div className="flex flex-col gap-3">
                                 <textarea
                                     value={editValue}
                                     onChange={(e) => setEditValue(e.target.value)}
@@ -67,8 +75,8 @@ export function ChatMessage({ message }: { message: Message }) {
                                     }}
                                     autoFocus
                                     rows={3}
-                                    className="w-full bg-[#2a2a2a] border border-white/20 rounded-lg px-4 py-3 text-[17px] text-stone-100 resize-none focus:outline-none focus:border-emerald-500/50"
-                                    style={{ fontFamily: "var(--font-tiempos, Georgia, serif)", lineHeight: 1.9 }}
+                                    className="w-full bg-[#2a2a2a] border border-white/20 rounded-lg px-4 py-3 text-stone-100 resize-none focus:outline-none focus:border-emerald-500/50"
+                                    style={{ fontFamily: "var(--font-tiempos, Georgia, serif)", fontSize: "17px", lineHeight: 1.9 }}
                                 />
                                 <div className="flex items-center gap-2">
                                     <button
@@ -88,8 +96,8 @@ export function ChatMessage({ message }: { message: Message }) {
                         ) : (
                             <div className="flex items-start gap-2">
                                 <p
-                                    className="flex-1 text-stone-100 leading-[1.9]"
-                                    style={{ fontFamily: "var(--font-tiempos, Georgia, serif)", fontSize: "17px" }}
+                                    className="flex-1 text-stone-100"
+                                    style={{ fontFamily: "var(--font-tiempos, Georgia, serif)", fontSize: "17px", lineHeight: 2 }}
                                 >
                                     {message.content}
                                 </p>
@@ -106,20 +114,26 @@ export function ChatMessage({ message }: { message: Message }) {
                         )
                     )}
 
-                    {/* ASSISTANT MESSAGE */}
+                    {/* ── ASSISTANT MESSAGE ── */}
                     {isAssistant && (
                         <>
                             <div
                                 className="prose prose-invert prose-stone max-w-none
-                                    prose-p:leading-[1.9] prose-p:text-stone-100
-                                    prose-li:leading-[1.9] prose-li:text-stone-100
-                                    prose-headings:text-white prose-headings:font-semibold
-                                    prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg
+                                    prose-p:text-stone-200 prose-p:mb-4
+                                    prose-li:text-stone-200
+                                    prose-headings:text-white prose-headings:font-semibold prose-headings:mt-6 prose-headings:mb-3
+                                    prose-h1:text-xl prose-h2:text-lg prose-h3:text-base
                                     prose-strong:text-white prose-strong:font-semibold
                                     prose-code:text-emerald-400 prose-code:text-sm prose-code:font-mono
-                                    prose-blockquote:border-emerald-500 prose-blockquote:text-stone-300
-                                    text-stone-100"
-                                style={{ fontFamily: "var(--font-tiempos, Georgia, serif)", fontSize: "17px" }}
+                                    prose-blockquote:border-emerald-500/50 prose-blockquote:text-stone-300
+                                    prose-ul:my-3 prose-ol:my-3
+                                    text-stone-200"
+                                style={{
+                                    fontFamily: "var(--font-tiempos, Georgia, serif)",
+                                    fontSize: "17px",
+                                    lineHeight: 2,
+                                    letterSpacing: "0.01em",
+                                }}
                             >
                                 {message.content ? (
                                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -133,7 +147,7 @@ export function ChatMessage({ message }: { message: Message }) {
                                 )}
                             </div>
 
-                            {/* Action buttons — copy, sound, retry */}
+                            {/* Action buttons */}
                             {!isStreaming && message.content && (
                                 <AssistantActions
                                     text={message.content}
@@ -141,15 +155,15 @@ export function ChatMessage({ message }: { message: Message }) {
                                 />
                             )}
 
-                            {/* Citations */}
+                            {/* ── SOURCES ── */}
                             {!isStreaming && message.citations && message.citations.length > 0 && (
-                                <div className="mt-5 pt-4 border-t border-white/10 flex flex-col gap-3">
-                                    <span className="text-[11px] font-bold text-stone-500 uppercase tracking-widest flex items-center gap-1.5">
-                                        <BookOpen size={12} /> Sources
+                                <div className="mt-6 bg-[#1a1a1a] border border-white/[0.08] rounded-xl p-5">
+                                    <span className="text-[11px] font-bold text-stone-400 uppercase tracking-widest flex items-center gap-1.5 mb-4">
+                                        <BookOpen size={12} /> Referenced Sources
                                     </span>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    <div className="flex flex-col gap-2">
                                         {message.citations.map((cit) => (
-                                            <SourceCard key={cit.index} citation={cit} />
+                                            <SourceRow key={cit.index} citation={cit} />
                                         ))}
                                     </div>
                                 </div>
@@ -162,27 +176,44 @@ export function ChatMessage({ message }: { message: Message }) {
     );
 }
 
-function SourceCard({ citation }: { citation: Citation }) {
+function SourceRow({ citation }: { citation: Citation }) {
     const { setActiveCitation } = useChatStore();
     const isVerified = citation.verification_status === "verified";
 
     return (
         <div
             onClick={() => setActiveCitation(citation)}
-            className="flex flex-col p-3 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-transparent hover:border-white/10 transition-all cursor-pointer group/source"
         >
-            <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11px] font-mono text-stone-500">[{citation.index}]</span>
+            {/* Icon */}
+            <div className="w-7 h-7 rounded-md bg-emerald-500/10 flex items-center justify-center shrink-0">
+                <FileText size={13} className="text-emerald-400" />
+            </div>
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-medium text-stone-200 truncate">
+                    {cleanSourceTitle(citation.source_title)}
+                </p>
+                <p className="text-[11px] text-stone-500 mt-0.5">
+                    {citation.chapter ? `Ch. ${citation.chapter} · ` : ""}Page {citation.page_number}
+                </p>
+            </div>
+
+            {/* Verification badge */}
+            <div className="shrink-0 flex items-center gap-1.5">
                 {isVerified ? (
-                    <CheckCircle2 className="text-emerald-500" size={13} />
+                    <>
+                        <span className="text-[10px] text-emerald-500 font-medium hidden group-hover/source:inline">Verified</span>
+                        <CheckCircle2 className="text-emerald-500" size={14} />
+                    </>
                 ) : (
-                    <AlertCircle className="text-amber-500" size={13} />
+                    <>
+                        <span className="text-[10px] text-amber-500 font-medium hidden group-hover/source:inline">Low confidence</span>
+                        <AlertCircle className="text-amber-500" size={14} />
+                    </>
                 )}
             </div>
-            <h4 className="text-[13px] font-semibold text-stone-300 line-clamp-1">{citation.source_title}</h4>
-            <p className="text-[11px] text-stone-500 mt-1">
-                {citation.chapter ? `Ch. ${citation.chapter} · ` : ""}Page {citation.page_number}
-            </p>
         </div>
     );
 }
