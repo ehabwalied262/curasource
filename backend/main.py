@@ -184,7 +184,7 @@ def chat(req: ChatRequest):
             edition="",
             chapter=res.get("chapter", ""),
             page_number=res.get("page", 0),
-            excerpt=res["text"][:300],
+            excerpt=res["text"],
             verification_status="verified" if res["score"] > 0.7 else "low_confidence",
             verification_score=res["score"],
         ))
@@ -244,7 +244,7 @@ def chat_stream(req: ChatRequest):
             edition="",
             chapter=res.get("chapter", ""),
             page_number=res.get("page", 0),
-            excerpt=res["text"][:300],
+            excerpt=res["text"],
             verification_status="verified" if res["score"] > 0.7 else "low_confidence",
             verification_score=res["score"],
         ))

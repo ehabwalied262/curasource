@@ -1007,17 +1007,17 @@ class MetadataTagger:
         clean_name = Path(filename).name
         
         if clean_name not in self.registry:
-            logger.warning(f"File '{{clean_name}}' not found in SOURCE_REGISTRY. Using fallback metadata.")
-            return {{
+            logger.warning(f"File '{clean_name}' not found in SOURCE_REGISTRY. Using fallback metadata.")
+            return {
                 "title": clean_name.replace(".pdf", "").replace(".PDF", ""),
                 "domain": "medical",
                 "subdomain": "unknown",
                 "parser_strategy": "pymupdf"
-            }}
-            
+            }
+
         return self.registry[clean_name]
 
     def create_chunk_hash(self, text_content: str, filename: str, page_num: int) -> str:
         """Creates a unique hash for deduplication during vector insertion."""
-        unique_string = f"{{filename}}_{{page_num}}_{{text_content}}"
+        unique_string = f"{filename}_{page_num}_{text_content}"
         return hashlib.sha256(unique_string.encode('utf-8')).hexdigest()
