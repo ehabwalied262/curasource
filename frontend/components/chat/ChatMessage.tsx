@@ -136,14 +136,21 @@ export function ChatMessage({ message }: { message: Message }) {
                                 }}
                             >
                                 {message.content ? (
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                        {message.content}
-                                    </ReactMarkdown>
+                                    <div className={showCursor ? "streaming-text" : ""}>
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                            {message.content}
+                                        </ReactMarkdown>
+                                    </div>
                                 ) : (
-                                    <span className="text-stone-500">Thinking…</span>
+                                    <div className="flex items-center gap-3 py-2">
+                                        <div className="thinking-dots">
+                                            <span /><span /><span />
+                                        </div>
+                                        <span className="text-stone-500 text-sm">Searching sources...</span>
+                                    </div>
                                 )}
                                 {showCursor && (
-                                    <span className="inline-block w-[2px] h-[18px] bg-emerald-400 ml-0.5 align-middle animate-pulse" />
+                                    <span className="inline-block w-[3px] h-[20px] bg-emerald-400 rounded-full ml-1 align-middle animate-pulse" />
                                 )}
                             </div>
 

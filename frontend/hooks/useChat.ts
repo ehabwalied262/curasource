@@ -2,6 +2,53 @@ import { useChatStore } from "@/stores/chatStore";
 import { Message, Citation } from "@/types";
 import { ENDPOINTS } from "@/lib/api";
 
+/** Drains a token queue at a smooth, readable pace */
+function createTokenBuffer(onToken: (t: string) => void) {
+    const queue: string[] = [];
+    let draining = false;
+    let done = false;
+
+    const TOKEN_DELAY = 30; // ms between tokens — smooth & readable
+
+    async function drain() {
+        if (draining) return;
+        draining = true;
+
+        while (queue.length > 0) {
+            const token = queue.shift()!;
+            onToken(token);
+            // Adaptive: tiny pause per token, slightly longer after punctuation
+            const pause = /[.!?,:;]\s*$/.test(token) ? TOKEN_DELAY * 2.5 : TOKEN_DELAY;
+            await new Promise((r) => setTimeout(r, pause));
+        }
+
+        draining = false;
+
+        // If stream ended but queue was still draining, we're now fully done
+        if (done && queue.length === 0) {
+            flushResolve?.();
+        }
+    }
+
+    let flushResolve: (() => void) | null = null;
+
+    return {
+        push(token: string) {
+            queue.push(token);
+            drain();
+        },
+        /** Signal that no more tokens will arrive; returns a promise that resolves when queue is empty */
+        finish(): Promise<void> {
+            done = true;
+            if (queue.length === 0 && !draining) return Promise.resolve();
+            return new Promise((resolve) => {
+                flushResolve = resolve;
+                drain(); // kick drain in case it stopped
+            });
+        },
+    };
+}
+
 export function useChat() {
     const {
         domain,
@@ -19,6 +66,12 @@ export function useChat() {
         addMessage({ id: crypto.randomUUID(), role: "assistant", content: "" });
         setLoading(true);
         setStreaming(true);
+
+        let pendingCitations: Citation[] | null = null;
+
+        const buffer = createTokenBuffer((token) => {
+            appendToLastAssistantMessage(token);
+        });
 
         try {
             const response = await fetch(ENDPOINTS.chatStream, {
@@ -44,21 +97,29 @@ export function useChat() {
                     try {
                         const parsed = JSON.parse(line.slice(6));
                         if (parsed.token) {
-                            appendToLastAssistantMessage(parsed.token);
+                            buffer.push(parsed.token);
                         }
                         if (parsed.done && parsed.citations) {
-                            updateLastAssistantMessage(
-                                useChatStore.getState().messages.findLast(
-                                    (m: Message) => m.role === "assistant"
-                                )?.content ?? "",
-                                parsed.citations as Citation[]
-                            );
+                            pendingCitations = parsed.citations as Citation[];
                         }
                         if (parsed.error) {
-                            appendToLastAssistantMessage("\n\n_Error: " + parsed.error + "_");
+                            buffer.push("\n\n_Error: " + parsed.error + "_");
                         }
                     } catch { /* incomplete JSON chunk */ }
                 }
+            }
+
+            // Wait for all buffered tokens to finish rendering
+            await buffer.finish();
+
+            // Now apply citations
+            if (pendingCitations) {
+                updateLastAssistantMessage(
+                    useChatStore.getState().messages.findLast(
+                        (m: Message) => m.role === "assistant"
+                    )?.content ?? "",
+                    pendingCitations
+                );
             }
         } catch (error) {
             console.error("CuraSource stream error:", error);
@@ -83,11 +144,9 @@ export function useChat() {
         const idx = state.messages.findIndex((m) => m.id === assistantMessageId);
         if (idx === -1) return;
 
-        // Find the user message right before this assistant message
         const userMsg = state.messages.slice(0, idx).findLast((m) => m.role === "user");
         if (!userMsg) return;
 
-        // Delete the assistant message (and anything after) then re-stream
         deleteFromMessage(assistantMessageId);
         await streamResponse(userMsg.content);
     };
