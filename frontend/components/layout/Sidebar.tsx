@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -13,6 +14,8 @@ import {
     HeartPulse,
     PanelLeftClose,
     Trash2,
+    Check,
+    X,
 } from "lucide-react";
 
 export function Sidebar() {
@@ -142,6 +145,8 @@ function ConversationGroup({
     onLoad: (id: string) => void;
     onDelete: (id: string) => void;
 }) {
+    const [confirmId, setConfirmId] = useState<string | null>(null);
+
     if (items.length === 0) return null;
     return (
         <div>
@@ -149,28 +154,69 @@ function ConversationGroup({
                 {label}
             </h3>
             <div className="space-y-0.5">
-                {items.map((conv) => (
-                    <div
-                        key={conv.id}
-                        className={cn(
-                            "group flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors",
-                            conv.id === activeId
-                                ? "bg-white/10 text-stone-100"
-                                : "text-stone-400 hover:bg-white/5 hover:text-stone-200"
-                        )}
-                        onClick={() => onLoad(conv.id)}
-                    >
-                        <MessageSquare size={13} className="shrink-0" />
-                        <span className="flex-1 truncate text-sm">{conv.title}</span>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onDelete(conv.id); }}
-                            className="shrink-0 opacity-0 group-hover:opacity-100 p-0.5 rounded hover:text-red-400 transition-all cursor-pointer"
-                            title="Delete"
+                {items.map((conv) => {
+                    const isConfirming = confirmId === conv.id;
+
+                    return (
+                        <div
+                            key={conv.id}
+                            className={cn(
+                                "group flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors",
+                                isConfirming
+                                    ? "bg-red-500/10 border border-red-500/20"
+                                    : conv.id === activeId
+                                    ? "bg-white/10 text-stone-100"
+                                    : "text-stone-400 hover:bg-white/5 hover:text-stone-200"
+                            )}
+                            onClick={() => !isConfirming && onLoad(conv.id)}
                         >
-                            <Trash2 size={12} />
-                        </button>
-                    </div>
-                ))}
+                            <MessageSquare size={13} className="shrink-0" />
+
+                            {isConfirming ? (
+                                <>
+                                    <span className="flex-1 truncate text-sm text-red-400">
+                                        Delete this chat?
+                                    </span>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onDelete(conv.id);
+                                            setConfirmId(null);
+                                        }}
+                                        className="shrink-0 p-1 rounded hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors cursor-pointer"
+                                        title="Confirm delete"
+                                    >
+                                        <Check size={13} />
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setConfirmId(null);
+                                        }}
+                                        className="shrink-0 p-1 rounded hover:bg-white/10 text-stone-400 hover:text-stone-200 transition-colors cursor-pointer"
+                                        title="Cancel"
+                                    >
+                                        <X size={13} />
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <span className="flex-1 truncate text-sm">{conv.title}</span>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setConfirmId(conv.id);
+                                        }}
+                                        className="shrink-0 opacity-0 group-hover:opacity-100 p-0.5 rounded hover:text-red-400 transition-all cursor-pointer"
+                                        title="Delete"
+                                    >
+                                        <Trash2 size={12} />
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );
