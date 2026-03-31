@@ -4,9 +4,9 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { AppShell } from "@/components/layout/AppShell";
 
-// Tiempos Text — drop TiemposText-Regular.woff2 into /public/fonts/
+// Tiempos Text — font file at /public/fonts/Tiempos Text Regular.ttf
 const fontTiempos = localFont({
-  src: "../public/fonts/TiemposText-Regular.woff2",
+  src: "../public/fonts/Tiempos Text Regular.ttf",
   variable: "--font-tiempos",
   display: "swap",
   fallback: ["Georgia", "Times New Roman", "serif"],
