@@ -74,10 +74,17 @@ export function useChat() {
         });
 
         try {
+            // Send last 10 messages as history (excluding the empty placeholder we just added)
+            const allMessages = useChatStore.getState().messages;
+            const history = allMessages
+                .slice(0, -1)   // exclude the empty assistant placeholder
+                .slice(-10)     // keep last 10 messages max
+                .map((m: Message) => ({ role: m.role, content: m.content }));
+
             const response = await fetch(ENDPOINTS.chatStream, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: content, domain }),
+                body: JSON.stringify({ message: content, domain, history }),
             });
 
             if (!response.ok || !response.body) {
