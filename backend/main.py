@@ -259,26 +259,31 @@ class TTSRequest(BaseModel):
 def tts(req: TTSRequest):
     """Proxy TTS request to ElevenLabs — keeps API key server-side."""
     if not ELEVENLABS_API_KEY:
+        logger.error("ELEVENLABS_API_KEY is not set")
         raise HTTPException(status_code=503, detail="TTS not configured")
 
     import httpx
+    logger.info(f"TTS request ({len(req.text)} chars), key starts with: {ELEVENLABS_API_KEY[:8]}...")
     try:
         resp = httpx.post(
             f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}",
             headers={
                 "xi-api-key": ELEVENLABS_API_KEY,
+                "Authorization": f"Bearer {ELEVENLABS_API_KEY}",
                 "Content-Type": "application/json",
+                "Accept": "audio/mpeg",
             },
             json={
                 "text": req.text[:2500],
-                "model_id": "eleven_monolingual_v1",
+                "model_id": "eleven_flash_v2_5",
                 "voice_settings": {"stability": 0.5, "similarity_boost": 0.75},
             },
             timeout=30,
         )
+        logger.info(f"ElevenLabs responded with status {resp.status_code}")
         if resp.status_code != 200:
-            logger.error(f"ElevenLabs error {resp.status_code}: {resp.text}")
-            raise HTTPException(status_code=502, detail="TTS generation failed")
+            logger.error(f"ElevenLabs error {resp.status_code}: {resp.text[:500]}")
+            raise HTTPException(status_code=502, detail=f"TTS failed: {resp.status_code}")
 
         return StreamingResponse(
             iter([resp.content]),
@@ -286,6 +291,11 @@ def tts(req: TTSRequest):
         )
     except httpx.TimeoutException:
         raise HTTPException(status_code=504, detail="TTS request timed out")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"TTS unexpected error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/health")
