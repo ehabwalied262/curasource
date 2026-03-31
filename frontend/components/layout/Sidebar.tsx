@@ -113,7 +113,7 @@ export function Sidebar() {
             </div>
 
             {/* Bottom Nav */}
-            <div className="p-2 border-t border-white/10 space-y-0.5">
+            {/* <div className="p-2 border-t border-white/10 space-y-0.5">
                 <Link
                     href="/sources"
                     className={cn(
@@ -138,7 +138,7 @@ export function Sidebar() {
                     <Settings size={15} />
                     Settings
                 </Link>
-            </div>
+            </div> */}
         </aside>
     );
 }
