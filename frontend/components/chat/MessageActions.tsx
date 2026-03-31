@@ -68,7 +68,7 @@ export function AssistantActions({ text, onRetry }: AssistantActionsProps) {
     };
 
     return (
-        <div className="flex items-center gap-0.5 mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+        <div className="flex items-center gap-0.5 mt-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-150">
             <ActionButton onClick={handleCopy} title="Copy">
                 {copied ? (
                     <Check size={14} className="text-emerald-400" />
