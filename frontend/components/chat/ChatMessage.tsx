@@ -32,20 +32,27 @@ export function ChatMessage({ message }: { message: Message }) {
                     </span>
 
                     <div className="prose prose-invert prose-stone max-w-none
-                        prose-p:text-[15px] prose-p:leading-[1.85] prose-p:text-stone-200
-                        prose-li:text-[15px] prose-li:leading-[1.85] prose-li:text-stone-200
-                        prose-headings:text-stone-100 prose-headings:font-semibold
-                        prose-h1:text-xl prose-h2:text-lg prose-h3:text-base
-                        prose-strong:text-stone-100 prose-strong:font-semibold
-                        prose-code:text-emerald-400 prose-code:text-sm
-                        prose-blockquote:border-emerald-500 prose-blockquote:text-stone-400
-                        text-stone-200">
+                        font-tiempos
+                        prose-p:text-[17px] prose-p:leading-[1.9] prose-p:text-stone-100
+                        prose-li:text-[17px] prose-li:leading-[1.9] prose-li:text-stone-100
+                        prose-headings:text-white prose-headings:font-semibold
+                        prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg
+                        prose-strong:text-white prose-strong:font-semibold
+                        prose-code:text-emerald-400 prose-code:text-sm prose-code:font-mono
+                        prose-blockquote:border-emerald-500 prose-blockquote:text-stone-300
+                        text-stone-100 text-[17px] leading-[1.9]">
                         {message.content ? (
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {message.content}
-                            </ReactMarkdown>
+                            isAssistant ? (
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                    {message.content}
+                                </ReactMarkdown>
+                            ) : (
+                                <p className="text-[17px] leading-[1.9] text-stone-100 font-tiempos">
+                                    {message.content}
+                                </p>
+                            )
                         ) : (
-                            <span className="text-stone-500 text-[15px]">Thinking…</span>
+                            <span className="text-stone-500 text-[17px]">Thinking…</span>
                         )}
                         {showCursor && (
                             <span className="inline-block w-[2px] h-[18px] bg-emerald-400 ml-0.5 align-middle animate-pulse" />

@@ -118,14 +118,14 @@ export function ChatInterface() {
                         onKeyDown={handleKeyDown}
                         disabled={isLoading}
                         placeholder={`Ask a ${domain} question...`}
-                        className="w-full h-12 md:h-14 pl-5 pr-14 rounded-xl border-white/10 bg-[#2a2a2a] text-stone-100 placeholder:text-stone-500 focus-visible:ring-emerald-500/50 text-base"
+                        className="w-full h-12 md:h-14 pl-5 pr-14 rounded-xl border-white/10 bg-[#2a2a2a] text-stone-100 placeholder:text-stone-500 focus-visible:ring-emerald-500/50 text-[17px] font-tiempos"
                     />
                     <Button
                         onClick={handleSend}
                         disabled={isLoading || !input.trim()}
-                        className="absolute right-2 top-1.5 md:top-2 h-9 w-9 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="absolute right-2 top-1.5 md:top-2 h-9 w-9 rounded-lg bg-white hover:bg-stone-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                     >
-                        <SendHorizontal size={16} />
+                        <SendHorizontal size={16} className="text-[#212121]" />
                     </Button>
                 </div>
                 <p className="text-[10px] text-center text-stone-600 mt-3 uppercase tracking-widest">
