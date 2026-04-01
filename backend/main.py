@@ -204,8 +204,10 @@ TRIAGE_PROMPTS = {
         "- The question is clearly educational/conceptual (mechanism, pharmacology, definition, 'what is X')\n"
         "- Enough clinical context is already provided in the conversation\n\n"
 
-        "IMPORTANT: For ANY management question without clinical context → ALWAYS choose Option 2. "
-        "One focused question is always better than a generic answer."
+        "CRITICAL: Never assume or invent clinical details not provided by the user. "
+        "Ask only about information the user has not yet given. "
+        "For ANY management question without clinical context → ALWAYS choose Option 2. "
+        "One focused question is always better than a generic or incorrect answer."
     ),
 
     "fitness": (
@@ -332,13 +334,32 @@ def count_clarification_rounds(history: List[dict]) -> int:
 
 
 def build_search_query_from_history(history: List[dict], message: str) -> str:
-    """Synthesize a search query from the full conversation context."""
-    context_parts = []
-    for m in history:
-        if m["role"] == "user":
-            context_parts.append(m["content"])
-    context_parts.append(message)
-    return " ".join(context_parts)[:300]  # cap at 300 chars
+    """Synthesize a focused search query anchored to the original question.
+
+    Uses the first user message as the core topic, then appends only
+    meaningful clinical context (filters out 'I don't know' etc.).
+    """
+    skip_phrases = ["i don't know", "i dont know", "not sure", "no idea",
+                    "you tell me", "just answer", "skip", "i don't", "idk"]
+
+    user_messages = [m["content"] for m in history if m["role"] == "user"]
+    user_messages.append(message)
+
+    # First user message = original question (anchor)
+    original_question = user_messages[0] if user_messages else message
+
+    # Subsequent messages = clinical context gathered (skip non-answers)
+    clinical_context = []
+    for msg in user_messages[1:]:
+        if not any(phrase in msg.lower() for phrase in skip_phrases) and len(msg.strip()) > 2:
+            clinical_context.append(msg.strip())
+
+    if clinical_context:
+        query = f"{original_question} {' '.join(clinical_context)}"
+    else:
+        query = original_question
+
+    return query[:400]
 
 
 def triage_request(
@@ -353,9 +374,9 @@ def triage_request(
     Hard limit: after 2 clarification rounds, always search.
     Also forces search if user says 'I don't know' or similar.
     """
-    # Hard limit: max 2 clarifying questions, then search with all context gathered
+    # Hard limit: max 3 clarifying questions, then search with all context gathered
     clarification_rounds = count_clarification_rounds(history)
-    if clarification_rounds >= 2:
+    if clarification_rounds >= 3:
         query = build_search_query_from_history(history, message)
         logger.info(f"Triage → FORCE SEARCH (limit reached) | Query: {query[:80]}")
         return True, query
