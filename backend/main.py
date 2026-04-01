@@ -353,9 +353,14 @@ def triage_request(
         logger.warning(f"Triage call failed ({e}), defaulting to search")
         return True, message  # safe default: search with original message
 
-    if text.startswith("[SEARCH_RAG]"):
-        lines = text.split("\n", 1)
-        query = lines[1].strip() if len(lines) > 1 and lines[1].strip() else message
+    # Llama 3 sometimes adds preamble before the tag — search anywhere in the response
+    if "[SEARCH_RAG]" in text:
+        # Extract query: everything after the [SEARCH_RAG] tag on the next line
+        after_tag = text.split("[SEARCH_RAG]", 1)[1].strip()
+        # Take the first non-empty line as the query
+        query_lines = [l.strip() for l in after_tag.split("\n") if l.strip()]
+        # Strip surrounding quotes if present
+        query = query_lines[0].strip('"\'') if query_lines else message
         logger.info(f"Triage → SEARCH | Query: {query}")
         return True, query
 
