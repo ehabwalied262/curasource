@@ -326,6 +326,21 @@ def truncate_history(history: List[HistoryMessage], max_tokens: int = 1500) -> L
 
     return formatted[cutoff:]
 
+def count_clarification_rounds(history: List[dict]) -> int:
+    """Count how many assistant clarifying turns have already happened."""
+    return sum(1 for m in history if m["role"] == "assistant")
+
+
+def build_search_query_from_history(history: List[dict], message: str) -> str:
+    """Synthesize a search query from the full conversation context."""
+    context_parts = []
+    for m in history:
+        if m["role"] == "user":
+            context_parts.append(m["content"])
+    context_parts.append(message)
+    return " ".join(context_parts)[:300]  # cap at 300 chars
+
+
 def triage_request(
     domain: Optional[str],
     history: List[dict],
@@ -334,7 +349,24 @@ def triage_request(
     """
     Call the LLM with the triage prompt to decide: search or clarify?
     Returns (should_search: bool, search_query_or_clarification: str)
+
+    Hard limit: after 2 clarification rounds, always search.
+    Also forces search if user says 'I don't know' or similar.
     """
+    # Hard limit: max 2 clarifying questions, then search with all context gathered
+    clarification_rounds = count_clarification_rounds(history)
+    if clarification_rounds >= 2:
+        query = build_search_query_from_history(history, message)
+        logger.info(f"Triage → FORCE SEARCH (limit reached) | Query: {query[:80]}")
+        return True, query
+
+    # If user says they don't know, proceed with what we have
+    dont_know_phrases = ["i don't know", "i dont know", "not sure", "no idea", "you tell me", "just answer", "skip"]
+    if any(phrase in message.lower() for phrase in dont_know_phrases):
+        query = build_search_query_from_history(history, message)
+        logger.info(f"Triage → FORCE SEARCH (user unsure) | Query: {query[:80]}")
+        return True, query
+
     triage_prompt = get_triage_prompt(domain)
 
     messages = [{"role": "system", "content": triage_prompt}]
