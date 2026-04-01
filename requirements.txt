@@ -1,0 +1,22 @@
+# -------------------------------------------------------
+# API SERVER — what runs on Koyeb (keep this lean)
+# -------------------------------------------------------
+
+# Web framework
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.6.0
+pydantic-settings>=2.2.0
+python-multipart>=0.0.9
+httpx>=0.27.0
+
+# Vector DB
+qdrant-client>=1.8.0
+
+# HF Inference API — handles both embeddings (BGE) and LLM (Llama 3)
+# No local model, no torch — keeps the Docker image lean
+huggingface-hub>=0.22.0
+
+# Utilities
+loguru>=0.7.0
+python-dotenv>=1.0.0
