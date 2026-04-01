@@ -177,95 +177,77 @@ DOMAIN_SYSTEM_PROMPTS = {
 # Triage system prompt — used for the first quick LLM call to decide: ask or search?
 TRIAGE_PROMPTS = {
     "medical": (
-        "You are a medical triage assistant deciding whether to ask ONE clarifying question or search the database.\n\n"
+        "You are a medical triage assistant. Your ONLY job: decide to ask ALL missing questions at once, or search.\n\n"
 
-        "OUTPUT FORMAT — you must output EXACTLY one of these two options, nothing else:\n\n"
+        "OUTPUT FORMAT — output EXACTLY one of these two options:\n\n"
 
         "Option 1 — To search the database:\n"
         "[SEARCH_RAG]\n"
-        "<expanded search query here>\n\n"
+        "<expanded search query>\n\n"
 
-        "Option 2 — To ask the user ONE question:\n"
-        "<your single clarifying question here>\n\n"
+        "Option 2 — Ask ALL missing questions in ONE message (not one at a time):\n"
+        "<all your questions in a single natural message>\n\n"
 
-        "WHEN TO ASK (Option 2) — ask if the question is about managing a patient and is missing ANY of:\n"
-        "- What type of shock/condition (septic? cardiogenic? hypovolemic? obstructive?)\n"
-        "- Current vitals (MAP, BP, HR)\n"
-        "- What has already been tried\n"
-        "- Patient context (age, comorbidities, ICU vs ward)\n\n"
+        "RULE — Ask in Option 2 ONLY on the FIRST turn if the question is a management question missing context.\n"
+        "On ALL subsequent turns (history has any assistant message) → ALWAYS choose Option 1 and search.\n\n"
 
-        "Examples of questions that MUST trigger Option 2:\n"
-        "- 'How do you manage hypotension in ICU?' → ask: 'Quick question before I look this up — what type of shock are you dealing with (septic, cardiogenic, hypovolemic), and do you have a current MAP?'\n"
-        "- 'What do I do for a hypotensive patient?' → ask: 'To give you the right approach — is this a septic shock case, or something else? And what's the current MAP?'\n"
-        "- 'Patient crashing, low BP' → ask: 'What's the likely cause — sepsis, bleeding, cardiac failure? Any vasopressors already running?'\n\n"
+        "What to ask about (all at once, in one message):\n"
+        "- Shock type (septic / cardiogenic / hypovolemic / obstructive)\n"
+        "- Current BP or MAP (you will calculate MAP yourself from BP if given)\n"
+        "- What treatments have already been tried\n\n"
 
-        "WHEN TO SEARCH (Option 1) — search directly if:\n"
-        "- The user says 'just answer', 'skip questions', or 'don't ask'\n"
-        "- The question is clearly educational/conceptual (mechanism, pharmacology, definition, 'what is X')\n"
-        "- Enough clinical context is already provided in the conversation\n\n"
+        "Examples:\n"
+        "First turn 'How do you manage hypotension in ICU?' → ask: "
+        "'Before I search — what type of shock is this (septic, cardiogenic, hypovolemic), "
+        "what is the current BP, and has anything been tried already (fluids, vasopressors)?'\n\n"
 
-        "CRITICAL: Never assume or invent clinical details not provided by the user. "
-        "Ask only about information the user has not yet given. "
-        "For ANY management question without clinical context → ALWAYS choose Option 2. "
-        "One focused question is always better than a generic or incorrect answer."
+        "First turn 'Patient with low BP' → ask: "
+        "'Quick questions: what type of shock do you suspect, what is the current BP, "
+        "and what has already been given?'\n\n"
+
+        "WHEN TO SEARCH DIRECTLY (Option 1):\n"
+        "- Any subsequent turn after questions were already asked (history has an assistant message)\n"
+        "- User says 'just answer', 'skip', 'I don't know'\n"
+        "- Educational/conceptual question (mechanism, definition, pharmacology)\n"
+        "- Enough clinical context already provided\n\n"
+
+        "CRITICAL: Never ask the same question twice. "
+        "Never ask for BP if BP was already given (calculate MAP = DBP + (SBP-DBP)/3 yourself). "
+        "Never invent clinical details."
     ),
 
     "fitness": (
-        "You are a fitness triage assistant deciding whether to ask ONE clarifying question or search the database.\n\n"
+        "You are a fitness triage assistant. Decide: ask ALL missing questions at once, or search.\n\n"
 
-        "OUTPUT FORMAT — output EXACTLY one of these two options:\n\n"
+        "OUTPUT FORMAT:\n"
+        "Option 1 — Search: [SEARCH_RAG]\\n<query>\n"
+        "Option 2 — Ask ALL missing questions in ONE message\n\n"
 
-        "Option 1 — To search:\n"
-        "[SEARCH_RAG]\n"
-        "<expanded search query>\n\n"
+        "Ask in Option 2 ONLY on the FIRST turn if key context is missing (experience level, goal, injuries).\n"
+        "On ALL subsequent turns (history has any assistant message) → ALWAYS choose Option 1.\n\n"
 
-        "Option 2 — To ask ONE question:\n"
-        "<your single clarifying question>\n\n"
+        "Example first turn: 'Design me a workout program' → ask: "
+        "'Quick questions to build the right program: what is your training experience level (beginner/intermediate/advanced), "
+        "what is your main goal (hypertrophy, strength, fat loss), and do you have any injuries or limitations?'\n\n"
 
-        "WHEN TO ASK (Option 2) — ask if the question is about programming/training and is missing:\n"
-        "- Training experience level (beginner/intermediate/advanced)\n"
-        "- Specific goal (hypertrophy, strength, fat loss, endurance)\n"
-        "- Any injuries or physical limitations\n\n"
-
-        "Examples that MUST trigger Option 2:\n"
-        "- 'Design me a workout program' → ask: 'To build the right program — what's your training experience level, and is your main goal hypertrophy or strength?'\n"
-        "- 'How many sets for chest?' → ask: 'Quick one — are you training for hypertrophy or strength, and what's your current weekly chest volume?'\n\n"
-
-        "WHEN TO SEARCH (Option 1):\n"
-        "- User says 'just answer' or 'skip questions'\n"
-        "- Clearly educational/conceptual question (mechanism, definition)\n"
-        "- Enough context already in the conversation\n\n"
-
-        "For ANY programming question without context → always ask first."
+        "Search directly for: educational questions, 'just answer', or if context already provided."
     ),
 
     "nutrition": (
-        "You are a nutrition triage assistant deciding whether to ask ONE clarifying question or search the database.\n\n"
+        "You are a nutrition triage assistant. Decide: ask ALL missing questions at once, or search.\n\n"
 
-        "OUTPUT FORMAT — output EXACTLY one of these two options:\n\n"
+        "OUTPUT FORMAT:\n"
+        "Option 1 — Search: [SEARCH_RAG]\\n<query>\n"
+        "Option 2 — Ask ALL missing questions in ONE message\n\n"
 
-        "Option 1 — To search:\n"
-        "[SEARCH_RAG]\n"
-        "<expanded search query>\n\n"
+        "Ask in Option 2 ONLY on the FIRST turn if key context is missing (medical conditions, goals, allergies).\n"
+        "On ALL subsequent turns (history has any assistant message) → ALWAYS choose Option 1.\n\n"
 
-        "Option 2 — To ask ONE question:\n"
-        "<your single clarifying question>\n\n"
+        "Example first turn: 'How should I improve my diet?' → ask: "
+        "'A couple of quick questions: do you have any medical conditions like diabetes or high cholesterol, "
+        "any food allergies, and what is your main goal (weight loss, muscle gain, managing a condition)?'\n\n"
 
-        "WHEN TO ASK (Option 2) — ask if the question is about dietary changes and is missing:\n"
-        "- Any medical conditions (diabetes, CKD, heart disease, etc.)\n"
-        "- Specific goal (weight loss, muscle gain, managing a condition)\n"
-        "- Food allergies or intolerances\n\n"
-
-        "Examples that MUST trigger Option 2:\n"
-        "- 'How should I improve my diet?' → ask: 'Before I look this up — do you have any medical conditions like diabetes or high cholesterol, and what's your main goal with the dietary change?'\n"
-        "- 'What should I eat for weight loss?' → ask: 'Quick question — any food allergies or medical conditions I should know about, like diabetes or kidney disease?'\n\n"
-
-        "WHEN TO SEARCH (Option 1):\n"
-        "- User says 'just answer' or 'skip questions'\n"
-        "- Clearly educational/conceptual question\n"
-        "- Enough context already in the conversation\n\n"
-
-        "For ANY dietary advice question without medical/goal context → always ask first."
+        "Search directly for: educational questions, 'just answer', or if context already provided."
     ),
 
     "default": (
@@ -333,6 +315,18 @@ def count_clarification_rounds(history: List[dict]) -> int:
     return sum(1 for m in history if m["role"] == "assistant")
 
 
+def extract_and_calculate_map(text: str) -> Optional[str]:
+    """Detect BP values like '90/40' or '120/80' and calculate MAP."""
+    import re
+    match = re.search(r'(\d{2,3})\s*/\s*(\d{2,3})', text)
+    if match:
+        sbp, dbp = int(match.group(1)), int(match.group(2))
+        if 40 <= sbp <= 250 and 20 <= dbp <= 150:
+            map_val = round(dbp + (sbp - dbp) / 3)
+            return f"(MAP ~{map_val} mmHg)"
+    return None
+
+
 def build_search_query_from_history(history: List[dict], message: str) -> str:
     """Synthesize a focused search query anchored to the original question.
 
@@ -354,8 +348,14 @@ def build_search_query_from_history(history: List[dict], message: str) -> str:
         if not any(phrase in msg.lower() for phrase in skip_phrases) and len(msg.strip()) > 2:
             clinical_context.append(msg.strip())
 
+    # Auto-calculate MAP from any BP values in the conversation
+    all_text = " ".join(user_messages)
+    map_annotation = extract_and_calculate_map(all_text)
+
     if clinical_context:
         query = f"{original_question} {' '.join(clinical_context)}"
+        if map_annotation:
+            query += f" {map_annotation}"
     else:
         query = original_question
 
@@ -374,9 +374,10 @@ def triage_request(
     Hard limit: after 2 clarification rounds, always search.
     Also forces search if user says 'I don't know' or similar.
     """
-    # Hard limit: max 3 clarifying questions, then search with all context gathered
+    # Hard limit: max 1 clarifying turn, then always search
+    # (triage prompts now ask all questions at once in the first turn)
     clarification_rounds = count_clarification_rounds(history)
-    if clarification_rounds >= 3:
+    if clarification_rounds >= 1:
         query = build_search_query_from_history(history, message)
         logger.info(f"Triage → FORCE SEARCH (limit reached) | Query: {query[:80]}")
         return True, query
