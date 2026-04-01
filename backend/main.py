@@ -65,6 +65,21 @@ class ChatResponse(BaseModel):
     answer: str
     sources_used: List[dict]
 
+# --------------- App ---------------
+app = FastAPI(
+    title="CuraSource API",
+    description="Medical & Fitness RAG Backend",
+    version="0.1.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # --------------- Domain Prompts ---------------
 # Each domain has a gatekeeper persona. These are used as the base system prompt.
 DOMAIN_SYSTEM_PROMPTS = {
