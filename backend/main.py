@@ -179,75 +179,111 @@ TRIAGE_PROMPTS = {
     "medical": (
         "You are a medical triage assistant. Your ONLY job: decide to ask ALL missing questions at once, or search.\n\n"
 
-        "OUTPUT FORMAT — output EXACTLY one of these two options:\n\n"
+        "OUTPUT FORMAT — output EXACTLY one of these two options. No preamble, no reasoning, no explanation:\n\n"
 
         "Option 1 — To search the database:\n"
         "[SEARCH_RAG]\n"
         "<expanded search query>\n\n"
 
-        "Option 2 — Ask ALL missing questions in ONE message (not one at a time):\n"
-        "<all your questions in a single natural message>\n\n"
+        "Option 2 — Ask ALL missing questions in ONE message:\n"
+        "<questions only — start directly with 'Before I search' or 'Quick questions:'>\n\n"
 
-        "RULE — Ask in Option 2 ONLY on the FIRST turn if the question is a management question missing context.\n"
-        "On ALL subsequent turns (history has any assistant message) → ALWAYS choose Option 1 and search.\n\n"
+        "STEP 1 — Read the question carefully and note what is ALREADY provided:\n"
+        "- Diagnosis or condition type already named? → do NOT ask for it\n"
+        "- Vitals or measurements already given (BP, HR, SpO₂, size, weight)? → do NOT ask for them\n"
+        "- Treatments already mentioned (drugs given, creams tried, procedures done)? → do NOT ask for them\n"
+        "- Patient demographics already given (age, sex, comorbidities)? → do NOT ask for them\n\n"
 
-        "What to ask about (all at once, in one message):\n"
-        "- Shock type (septic / cardiogenic / hypovolemic / obstructive)\n"
-        "- Current BP or MAP (you will calculate MAP yourself from BP if given)\n"
-        "- What treatments have already been tried\n\n"
+        "STEP 2 — Decide:\n"
+        "- If ALL key context is already in the question → Option 1 (search)\n"
+        "- If SOME context is missing AND it would change management → Option 2 (ask ONLY for what is missing)\n"
+        "- ONLY on FIRST turn. History has ANY assistant message → ALWAYS Option 1.\n\n"
 
-        "Examples:\n"
-        "First turn 'How do you manage hypotension in ICU?' → ask: "
-        "'Before I search — what type of shock is this (septic, cardiogenic, hypovolemic), "
-        "what is the current BP, and has anything been tried already (fluids, vasopressors)?'\n\n"
+        "EXAMPLES:\n"
+        "'How do I treat a dark pimple?' → missing: skin type, size, prior treatment "
+        "→ ask: 'Before I search — what skin type (oily, dry, sensitive), how large, and has anything been tried?'\n\n"
 
-        "First turn 'Patient with low BP' → ask: "
-        "'Quick questions: what type of shock do you suspect, what is the current BP, "
-        "and what has already been given?'\n\n"
+        "'How do I treat a dark pimple on sensitive skin?' → skin type already given "
+        "→ ask: 'Before I search — how large is it, and has anything been tried already?'\n\n"
 
-        "WHEN TO SEARCH DIRECTLY (Option 1):\n"
-        "- Any subsequent turn after questions were already asked (history has an assistant message)\n"
-        "- User says 'just answer', 'skip', 'I don't know'\n"
-        "- Educational/conceptual question (mechanism, definition, pharmacology)\n"
-        "- Enough clinical context already provided\n\n"
+        "'Manage hypotension in a septic patient, BP 80/50, already on fluids' → shock type + BP + prior tx all given "
+        "→ [SEARCH_RAG]\nmanage septic shock hypotension BP 80/50 refractory to fluids\n\n"
 
-        "CRITICAL: Never ask the same question twice. "
-        "Never ask for BP if BP was already given (calculate MAP = DBP + (SBP-DBP)/3 yourself). "
-        "Never invent clinical details."
+        "'Manage hypotension in ICU' → nothing given "
+        "→ ask: 'Before I search — what type of shock (septic, cardiogenic, hypovolemic), current BP, and what has been given?'\n\n"
+
+        "'What is the mechanism of metformin?' → educational, no context needed "
+        "→ [SEARCH_RAG]\nmechanism of metformin\n\n"
+
+        "CRITICAL: Ask ONLY what is relevant to THIS topic. "
+        "Do NOT ask about shock/BP for non-cardiovascular questions. "
+        "Do NOT re-ask anything the user already provided. "
+        "Do NOT output any reasoning or preamble — just the questions or [SEARCH_RAG]."
     ),
 
     "fitness": (
         "You are a fitness triage assistant. Decide: ask ALL missing questions at once, or search.\n\n"
 
-        "OUTPUT FORMAT:\n"
-        "Option 1 — Search: [SEARCH_RAG]\\n<query>\n"
-        "Option 2 — Ask ALL missing questions in ONE message\n\n"
+        "OUTPUT FORMAT — no preamble, no reasoning:\n"
+        "Option 1 — Search: [SEARCH_RAG]\n<query>\n"
+        "Option 2 — Ask ONLY the missing questions in ONE message\n\n"
 
-        "Ask in Option 2 ONLY on the FIRST turn if key context is missing (experience level, goal, injuries).\n"
-        "On ALL subsequent turns (history has any assistant message) → ALWAYS choose Option 1.\n\n"
+        "STEP 1 — Read the question and note what is ALREADY provided:\n"
+        "- Experience level already stated (beginner, advanced)? → do NOT ask\n"
+        "- Goal already stated (fat loss, hypertrophy, strength)? → do NOT ask\n"
+        "- Injuries or limitations already mentioned? → do NOT ask\n"
+        "- Equipment or schedule already given? → do NOT ask\n\n"
 
-        "Example first turn: 'Design me a workout program' → ask: "
-        "'Quick questions to build the right program: what is your training experience level (beginner/intermediate/advanced), "
-        "what is your main goal (hypertrophy, strength, fat loss), and do you have any injuries or limitations?'\n\n"
+        "STEP 2 — Decide:\n"
+        "- All key context given → Option 1 (search)\n"
+        "- Some context missing AND it changes the program → Option 2 (ask ONLY what is missing)\n"
+        "- History has ANY assistant message → ALWAYS Option 1\n\n"
 
-        "Search directly for: educational questions, 'just answer', or if context already provided."
+        "EXAMPLES:\n"
+        "'Design me a workout program' → missing all context "
+        "→ ask: 'Quick questions: experience level (beginner/intermediate/advanced), "
+        "main goal (strength, hypertrophy, fat loss), and any injuries or limitations?'\n\n"
+
+        "'Design a hypertrophy program for an intermediate lifter' → goal + level given "
+        "→ ask: 'Any injuries or limitations I should work around?'\n\n"
+
+        "'Design a hypertrophy program for an intermediate lifter, no injuries' → all context given "
+        "→ [SEARCH_RAG]\nhypertrophy program intermediate lifter\n\n"
+
+        "Educational/conceptual questions → always [SEARCH_RAG]. "
+        "Do NOT re-ask anything the user already provided."
     ),
 
     "nutrition": (
         "You are a nutrition triage assistant. Decide: ask ALL missing questions at once, or search.\n\n"
 
-        "OUTPUT FORMAT:\n"
-        "Option 1 — Search: [SEARCH_RAG]\\n<query>\n"
-        "Option 2 — Ask ALL missing questions in ONE message\n\n"
+        "OUTPUT FORMAT — no preamble, no reasoning:\n"
+        "Option 1 — Search: [SEARCH_RAG]\n<query>\n"
+        "Option 2 — Ask ONLY the missing questions in ONE message\n\n"
 
-        "Ask in Option 2 ONLY on the FIRST turn if key context is missing (medical conditions, goals, allergies).\n"
-        "On ALL subsequent turns (history has any assistant message) → ALWAYS choose Option 1.\n\n"
+        "STEP 1 — Read the question and note what is ALREADY provided:\n"
+        "- Medical condition already stated (diabetes, CKD, hypertension)? → do NOT ask\n"
+        "- Goal already stated (weight loss, muscle gain, managing condition)? → do NOT ask\n"
+        "- Allergies or intolerances already mentioned? → do NOT ask\n\n"
 
-        "Example first turn: 'How should I improve my diet?' → ask: "
-        "'A couple of quick questions: do you have any medical conditions like diabetes or high cholesterol, "
-        "any food allergies, and what is your main goal (weight loss, muscle gain, managing a condition)?'\n\n"
+        "STEP 2 — Decide:\n"
+        "- All key context given → Option 1 (search)\n"
+        "- Some context missing AND it changes the recommendation → Option 2 (ask ONLY what is missing)\n"
+        "- History has ANY assistant message → ALWAYS Option 1\n\n"
 
-        "Search directly for: educational questions, 'just answer', or if context already provided."
+        "EXAMPLES:\n"
+        "'How should I improve my diet?' → missing all context "
+        "→ ask: 'A couple of quick questions: any medical conditions (diabetes, high cholesterol), "
+        "food allergies, and your main goal (weight loss, muscle gain, managing a condition)?'\n\n"
+
+        "'How should a diabetic improve their diet for weight loss?' → condition + goal given "
+        "→ ask: 'Any food allergies or intolerances I should know about?'\n\n"
+
+        "'Nutrition plan for a diabetic trying to lose weight, no allergies' → all context given "
+        "→ [SEARCH_RAG]\ndiabetic weight loss nutrition plan\n\n"
+
+        "Educational/conceptual questions → always [SEARCH_RAG]. "
+        "Do NOT re-ask anything the user already provided."
     ),
 
     "default": (
@@ -327,6 +363,30 @@ def extract_and_calculate_map(text: str) -> Optional[str]:
     return None
 
 
+def strip_cot_preamble(text: str) -> str:
+    """Remove chain-of-thought reasoning lines that Llama 8B sometimes leaks before its answer.
+    Keeps only the lines that form the actual question or [SEARCH_RAG] output."""
+    import re
+    cot_starters = (
+        r"^since this is",
+        r"^this is (a|the) first",
+        r"^i('ll| will) ask",
+        r"^i('m| am) going to",
+        r"^let me",
+        r"^i need to",
+        r"^based on",
+        r"^the question (is|asks)",
+        r"^it('s| is) a management",
+        r"^i'll search",
+        r"^i will search",
+    )
+    pattern = re.compile("|".join(cot_starters), re.IGNORECASE)
+    lines = text.split("\n")
+    filtered = [line for line in lines if not pattern.match(line.strip())]
+    result = "\n".join(filtered).strip()
+    return result if result else text
+
+
 def build_search_query_from_history(history: List[dict], message: str) -> str:
     """Synthesize a focused search query anchored to the original question.
 
@@ -391,7 +451,17 @@ def triage_request(
 
     triage_prompt = get_triage_prompt(domain)
 
-    messages = [{"role": "system", "content": triage_prompt}]
+    # Inject the original question as context so the model can ask topic-relevant questions.
+    # When there's history, the original question is the first user message.
+    original_question = history[0]["content"] if history else message
+    triage_context = triage_prompt
+    if history:
+        triage_context += (
+            f"\n\nThe original question being discussed is: \"{original_question}\". "
+            "Ask ONLY questions directly relevant to that specific topic."
+        )
+
+    messages = [{"role": "system", "content": triage_context}]
     messages.extend(history)
     messages.append({"role": "user", "content": message})
 
@@ -399,7 +469,7 @@ def triage_request(
         response = hf_client.chat_completion(
             model="meta-llama/Meta-Llama-3-8B-Instruct",
             messages=messages,
-            max_tokens=150,
+            max_tokens=120,
             stream=False,
         )
         text = response.choices[0].message.content.strip()
@@ -418,8 +488,10 @@ def triage_request(
         logger.info(f"Triage → SEARCH | Query: {query}")
         return True, query
 
-    logger.info(f"Triage → CLARIFY | Response: {text[:80]}...")
-    return False, text
+    # Strip any chain-of-thought preamble the model leaked before the actual question
+    cleaned = strip_cot_preamble(text)
+    logger.info(f"Triage → CLARIFY | Response: {cleaned[:80]}...")
+    return False, cleaned
 
 
 # --------------- Search Logic ---------------
