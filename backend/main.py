@@ -387,6 +387,24 @@ def strip_cot_preamble(text: str) -> str:
     return result if result else text
 
 
+def looks_like_follow_up_answer(message: str) -> bool:
+    """Return True if the message reads like an answer to a prior clarification
+    rather than a new standalone question.
+
+    A standalone question typically starts with a question word or ends with '?'.
+    A follow-up answer is descriptive (e.g. 'sensitive, medium, no creams').
+    """
+    msg = message.strip().lower()
+    question_starters = (
+        "how", "what", "when", "why", "which", "who",
+        "should", "can ", "could", "does", "is ", "are ",
+        "do ", "will ", "would ", "please", "explain",
+    )
+    has_question_mark = "?" in message
+    starts_with_question = any(msg.startswith(q) for q in question_starters)
+    return not has_question_mark and not starts_with_question
+
+
 def build_search_query_from_history(history: List[dict], message: str) -> str:
     """Synthesize a focused search query anchored to the original question.
 
@@ -440,6 +458,13 @@ def triage_request(
     if clarification_rounds >= 1:
         query = build_search_query_from_history(history, message)
         logger.info(f"Triage → FORCE SEARCH (limit reached) | Query: {query[:80]}")
+        return True, query
+
+    # If history is missing (e.g. lost on reconnect) but the message reads like
+    # a follow-up answer (no "?", no question word), search with it as context.
+    if not history and looks_like_follow_up_answer(message):
+        query = message
+        logger.info(f"Triage → FORCE SEARCH (looks like follow-up with no history) | Query: {query[:80]}")
         return True, query
 
     # If user says they don't know, proceed with what we have
