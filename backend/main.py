@@ -380,6 +380,7 @@ def chat_stream(req: ChatRequest):
     # RAG search + full answer
     try:
         search_results = search_qdrant(req.message, domain_filter=req.domain)
+        logger.info(f"Qdrant returned {len(search_results)} results")
     except Exception as e:
         logger.error(f"Qdrant search failed: {e}")
         raise HTTPException(status_code=503, detail="Vector database unavailable.")
@@ -445,6 +446,9 @@ def tts(req: TTSRequest):
             timeout=30,
         )
         logger.info(f"ElevenLabs responded with status {resp.status_code}")
+        if resp.status_code == 401:
+            logger.warning("ElevenLabs 401 — free tier blocked from this IP (proxy/VPN flag). TTS unavailable.")
+            raise HTTPException(status_code=503, detail="TTS unavailable: ElevenLabs free tier is blocked on this deployment. Upgrade to a paid plan.")
         if resp.status_code != 200:
             logger.error(f"ElevenLabs error {resp.status_code}: {resp.text[:500]}")
             raise HTTPException(status_code=502, detail=f"TTS failed: {resp.status_code}")
