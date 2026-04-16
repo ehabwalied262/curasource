@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`dark ${fontBody.variable} ${fontMono.variable}`}>
-      <body className="font-body antialiased bg-[#212121] text-stone-100 overflow-hidden">
+      <body className="font-sans antialiased bg-[#212121] text-stone-100 overflow-hidden">
         <AppShell>{children}</AppShell>
       </body>
     </html>
