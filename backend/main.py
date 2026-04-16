@@ -550,6 +550,20 @@ def root():
     return {"status": "ok"}
 
 
+@app.get("/debug/config")
+def debug_config():
+    """Shows which env vars are loaded — values are masked, never exposed."""
+    return {
+        "HF_TOKEN": bool(HF_TOKEN),
+        "QDRANT_URL": bool(QDRANT_URL),
+        "QDRANT_API_KEY": bool(QDRANT_API_KEY),
+        "ELEVENLABS_API_KEY": bool(ELEVENLABS_API_KEY),
+        "SUPABASE_URL": SUPABASE_URL or "NOT SET",
+        "SUPABASE_ANON_KEY": bool(SUPABASE_ANON_KEY),
+        "CORS_ORIGINS": CORS_ORIGINS,
+    }
+
+
 @app.get("/health")
 def health_check():
     """Health check for deployment platforms."""
