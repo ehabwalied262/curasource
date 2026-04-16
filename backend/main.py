@@ -174,132 +174,9 @@ DOMAIN_SYSTEM_PROMPTS = {
     ),
 }
 
-# Triage system prompt — used for the first quick LLM call to decide: ask or search?
-TRIAGE_PROMPTS = {
-    "medical": (
-        "You are a medical triage assistant. Your ONLY job: decide to ask ALL missing questions at once, or search.\n\n"
-
-        "OUTPUT FORMAT — output EXACTLY one of these two options. No preamble, no reasoning, no explanation:\n\n"
-
-        "Option 1 — To search the database:\n"
-        "[SEARCH_RAG]\n"
-        "<expanded search query>\n\n"
-
-        "Option 2 — Ask ALL missing questions in ONE message:\n"
-        "<questions only — start directly with 'Before I search' or 'Quick questions:'>\n\n"
-
-        "STEP 1 — Read the question carefully and note what is ALREADY provided:\n"
-        "- Diagnosis or condition type already named? → do NOT ask for it\n"
-        "- Vitals or measurements already given (BP, HR, SpO₂, size, weight)? → do NOT ask for them\n"
-        "- Treatments already mentioned (drugs given, creams tried, procedures done)? → do NOT ask for them\n"
-        "- Patient demographics already given (age, sex, comorbidities)? → do NOT ask for them\n\n"
-
-        "STEP 2 — Decide:\n"
-        "- If ALL key context is already in the question → Option 1 (search)\n"
-        "- If SOME context is missing AND it would change management → Option 2 (ask ONLY for what is missing)\n"
-        "- ONLY on FIRST turn. History has ANY assistant message → ALWAYS Option 1.\n\n"
-
-        "EXAMPLES:\n"
-        "'How do I treat a dark pimple?' → missing: skin type, size, prior treatment "
-        "→ ask: 'Before I search — what skin type (oily, dry, sensitive), how large, and has anything been tried?'\n\n"
-
-        "'How do I treat a dark pimple on sensitive skin?' → skin type already given "
-        "→ ask: 'Before I search — how large is it, and has anything been tried already?'\n\n"
-
-        "'Manage hypotension in a septic patient, BP 80/50, already on fluids' → shock type + BP + prior tx all given "
-        "→ [SEARCH_RAG]\nmanage septic shock hypotension BP 80/50 refractory to fluids\n\n"
-
-        "'Manage hypotension in ICU' → nothing given "
-        "→ ask: 'Before I search — what type of shock (septic, cardiogenic, hypovolemic), current BP, and what has been given?'\n\n"
-
-        "'What is the mechanism of metformin?' → educational, no context needed "
-        "→ [SEARCH_RAG]\nmechanism of metformin\n\n"
-
-        "CRITICAL: Ask ONLY what is relevant to THIS topic. "
-        "Do NOT ask about shock/BP for non-cardiovascular questions. "
-        "Do NOT re-ask anything the user already provided. "
-        "Do NOT output any reasoning or preamble — just the questions or [SEARCH_RAG]."
-    ),
-
-    "fitness": (
-        "You are a fitness triage assistant. Decide: ask ALL missing questions at once, or search.\n\n"
-
-        "OUTPUT FORMAT — no preamble, no reasoning:\n"
-        "Option 1 — Search: [SEARCH_RAG]\n<query>\n"
-        "Option 2 — Ask ONLY the missing questions in ONE message\n\n"
-
-        "STEP 1 — Read the question and note what is ALREADY provided:\n"
-        "- Experience level already stated (beginner, advanced)? → do NOT ask\n"
-        "- Goal already stated (fat loss, hypertrophy, strength)? → do NOT ask\n"
-        "- Injuries or limitations already mentioned? → do NOT ask\n"
-        "- Equipment or schedule already given? → do NOT ask\n\n"
-
-        "STEP 2 — Decide:\n"
-        "- All key context given → Option 1 (search)\n"
-        "- Some context missing AND it changes the program → Option 2 (ask ONLY what is missing)\n"
-        "- History has ANY assistant message → ALWAYS Option 1\n\n"
-
-        "EXAMPLES:\n"
-        "'Design me a workout program' → missing all context "
-        "→ ask: 'Quick questions: experience level (beginner/intermediate/advanced), "
-        "main goal (strength, hypertrophy, fat loss), and any injuries or limitations?'\n\n"
-
-        "'Design a hypertrophy program for an intermediate lifter' → goal + level given "
-        "→ ask: 'Any injuries or limitations I should work around?'\n\n"
-
-        "'Design a hypertrophy program for an intermediate lifter, no injuries' → all context given "
-        "→ [SEARCH_RAG]\nhypertrophy program intermediate lifter\n\n"
-
-        "Educational/conceptual questions → always [SEARCH_RAG]. "
-        "Do NOT re-ask anything the user already provided."
-    ),
-
-    "nutrition": (
-        "You are a nutrition triage assistant. Decide: ask ALL missing questions at once, or search.\n\n"
-
-        "OUTPUT FORMAT — no preamble, no reasoning:\n"
-        "Option 1 — Search: [SEARCH_RAG]\n<query>\n"
-        "Option 2 — Ask ONLY the missing questions in ONE message\n\n"
-
-        "STEP 1 — Read the question and note what is ALREADY provided:\n"
-        "- Medical condition already stated (diabetes, CKD, hypertension)? → do NOT ask\n"
-        "- Goal already stated (weight loss, muscle gain, managing condition)? → do NOT ask\n"
-        "- Allergies or intolerances already mentioned? → do NOT ask\n\n"
-
-        "STEP 2 — Decide:\n"
-        "- All key context given → Option 1 (search)\n"
-        "- Some context missing AND it changes the recommendation → Option 2 (ask ONLY what is missing)\n"
-        "- History has ANY assistant message → ALWAYS Option 1\n\n"
-
-        "EXAMPLES:\n"
-        "'How should I improve my diet?' → missing all context "
-        "→ ask: 'A couple of quick questions: any medical conditions (diabetes, high cholesterol), "
-        "food allergies, and your main goal (weight loss, muscle gain, managing a condition)?'\n\n"
-
-        "'How should a diabetic improve their diet for weight loss?' → condition + goal given "
-        "→ ask: 'Any food allergies or intolerances I should know about?'\n\n"
-
-        "'Nutrition plan for a diabetic trying to lose weight, no allergies' → all context given "
-        "→ [SEARCH_RAG]\ndiabetic weight loss nutrition plan\n\n"
-
-        "Educational/conceptual questions → always [SEARCH_RAG]. "
-        "Do NOT re-ask anything the user already provided."
-    ),
-
-    "default": (
-        "You are a triage assistant. Your ONLY job is to decide whether to search the database or ask a question.\n\n"
-        "DECISION A — Search: Output [SEARCH_RAG] on line 1, then a search query on line 2.\n"
-        "DECISION B — Clarify: Ask 1-2 focused questions if critical context is missing.\n"
-        "Default to DECISION A when unsure."
-    ),
-}
-
 # --------------- Helpers ---------------
 def get_system_prompt(domain: Optional[str]) -> str:
     return DOMAIN_SYSTEM_PROMPTS.get(domain or "default", DOMAIN_SYSTEM_PROMPTS["default"])
-
-def get_triage_prompt(domain: Optional[str]) -> str:
-    return TRIAGE_PROMPTS.get(domain or "default", TRIAGE_PROMPTS["default"])
 
 def build_context_text(search_results: list) -> str:
     context = ""
@@ -345,178 +222,6 @@ def truncate_history(history: List[HistoryMessage], max_tokens: int = 1500) -> L
         token_count += approx_tokens
 
     return formatted[cutoff:]
-
-def count_clarification_rounds(history: List[dict]) -> int:
-    """Count how many assistant clarifying turns have already happened."""
-    return sum(1 for m in history if m["role"] == "assistant")
-
-
-def extract_and_calculate_map(text: str) -> Optional[str]:
-    """Detect BP values like '90/40' or '120/80' and calculate MAP."""
-    import re
-    match = re.search(r'(\d{2,3})\s*/\s*(\d{2,3})', text)
-    if match:
-        sbp, dbp = int(match.group(1)), int(match.group(2))
-        if 40 <= sbp <= 250 and 20 <= dbp <= 150:
-            map_val = round(dbp + (sbp - dbp) / 3)
-            return f"(MAP ~{map_val} mmHg)"
-    return None
-
-
-def strip_cot_preamble(text: str) -> str:
-    """Remove chain-of-thought reasoning lines that Llama 8B sometimes leaks before its answer.
-    Keeps only the lines that form the actual question or [SEARCH_RAG] output."""
-    import re
-    cot_starters = (
-        r"^since this is",
-        r"^this is (a|the) first",
-        r"^i('ll| will) ask",
-        r"^i('m| am) going to",
-        r"^let me",
-        r"^i need to",
-        r"^based on",
-        r"^the question (is|asks)",
-        r"^it('s| is) a management",
-        r"^i'll search",
-        r"^i will search",
-    )
-    pattern = re.compile("|".join(cot_starters), re.IGNORECASE)
-    lines = text.split("\n")
-    filtered = [line for line in lines if not pattern.match(line.strip())]
-    result = "\n".join(filtered).strip()
-    return result if result else text
-
-
-def looks_like_follow_up_answer(message: str) -> bool:
-    """Return True if the message reads like an answer to a prior clarification
-    rather than a new standalone question.
-
-    A standalone question typically starts with a question word or ends with '?'.
-    A follow-up answer is descriptive (e.g. 'sensitive, medium, no creams').
-    """
-    msg = message.strip().lower()
-    question_starters = (
-        "how", "what", "when", "why", "which", "who",
-        "should", "can ", "could", "does", "is ", "are ",
-        "do ", "will ", "would ", "please", "explain",
-    )
-    has_question_mark = "?" in message
-    starts_with_question = any(msg.startswith(q) for q in question_starters)
-    return not has_question_mark and not starts_with_question
-
-
-def build_search_query_from_history(history: List[dict], message: str) -> str:
-    """Synthesize a focused search query anchored to the original question.
-
-    Uses the first user message as the core topic, then appends only
-    meaningful clinical context (filters out 'I don't know' etc.).
-    """
-    skip_phrases = ["i don't know", "i dont know", "not sure", "no idea",
-                    "you tell me", "just answer", "skip", "i don't", "idk"]
-
-    user_messages = [m["content"] for m in history if m["role"] == "user"]
-    user_messages.append(message)
-
-    # First user message = original question (anchor)
-    original_question = user_messages[0] if user_messages else message
-
-    # Subsequent messages = clinical context gathered (skip non-answers)
-    clinical_context = []
-    for msg in user_messages[1:]:
-        if not any(phrase in msg.lower() for phrase in skip_phrases) and len(msg.strip()) > 2:
-            clinical_context.append(msg.strip())
-
-    # Auto-calculate MAP from any BP values in the conversation
-    all_text = " ".join(user_messages)
-    map_annotation = extract_and_calculate_map(all_text)
-
-    if clinical_context:
-        query = f"{original_question} {' '.join(clinical_context)}"
-        if map_annotation:
-            query += f" {map_annotation}"
-    else:
-        query = original_question
-
-    return query[:400]
-
-
-def triage_request(
-    domain: Optional[str],
-    history: List[dict],
-    message: str,
-) -> tuple[bool, str]:
-    """
-    Call the LLM with the triage prompt to decide: search or clarify?
-    Returns (should_search: bool, search_query_or_clarification: str)
-
-    Hard limit: after 2 clarification rounds, always search.
-    Also forces search if user says 'I don't know' or similar.
-    """
-    # Hard limit: max 1 clarifying turn, then always search
-    # (triage prompts now ask all questions at once in the first turn)
-    clarification_rounds = count_clarification_rounds(history)
-    if clarification_rounds >= 1:
-        query = build_search_query_from_history(history, message)
-        logger.info(f"Triage → FORCE SEARCH (limit reached) | Query: {query[:80]}")
-        return True, query
-
-    # If history is missing (e.g. lost on reconnect) but the message reads like
-    # a follow-up answer (no "?", no question word), search with it as context.
-    if not history and looks_like_follow_up_answer(message):
-        query = message
-        logger.info(f"Triage → FORCE SEARCH (looks like follow-up with no history) | Query: {query[:80]}")
-        return True, query
-
-    # If user says they don't know, proceed with what we have
-    dont_know_phrases = ["i don't know", "i dont know", "not sure", "no idea", "you tell me", "just answer", "skip"]
-    if any(phrase in message.lower() for phrase in dont_know_phrases):
-        query = build_search_query_from_history(history, message)
-        logger.info(f"Triage → FORCE SEARCH (user unsure) | Query: {query[:80]}")
-        return True, query
-
-    triage_prompt = get_triage_prompt(domain)
-
-    # Inject the original question as context so the model can ask topic-relevant questions.
-    # When there's history, the original question is the first user message.
-    original_question = history[0]["content"] if history else message
-    triage_context = triage_prompt
-    if history:
-        triage_context += (
-            f"\n\nThe original question being discussed is: \"{original_question}\". "
-            "Ask ONLY questions directly relevant to that specific topic."
-        )
-
-    messages = [{"role": "system", "content": triage_context}]
-    messages.extend(history)
-    messages.append({"role": "user", "content": message})
-
-    try:
-        response = hf_client.chat_completion(
-            model="meta-llama/Meta-Llama-3-8B-Instruct",
-            messages=messages,
-            max_tokens=120,
-            stream=False,
-        )
-        text = response.choices[0].message.content.strip()
-    except Exception as e:
-        logger.warning(f"Triage call failed ({e}), defaulting to search")
-        return True, message  # safe default: search with original message
-
-    # Llama 3 sometimes adds preamble before the tag — search anywhere in the response
-    if "[SEARCH_RAG]" in text:
-        # Extract query: everything after the [SEARCH_RAG] tag on the next line
-        after_tag = text.split("[SEARCH_RAG]", 1)[1].strip()
-        # Take the first non-empty line as the query
-        query_lines = [l.strip() for l in after_tag.split("\n") if l.strip()]
-        # Strip surrounding quotes if present
-        query = query_lines[0].strip('"\'') if query_lines else message
-        logger.info(f"Triage → SEARCH | Query: {query}")
-        return True, query
-
-    # Strip any chain-of-thought preamble the model leaked before the actual question
-    cleaned = strip_cot_preamble(text)
-    logger.info(f"Triage → CLARIFY | Response: {cleaned[:80]}...")
-    return False, cleaned
 
 
 # --------------- Search Logic ---------------
@@ -619,22 +324,9 @@ def chat(req: ChatRequest):
     logger.info(f"Chat request: '{req.message}' [domain={req.domain}]")
     history = truncate_history(req.history)
 
-    # Triage: decide whether to search or clarify
-    should_search, query_or_clarification = triage_request(req.domain, history, req.message)
-
-    if not should_search:
-        # Return the clarifying question directly — no RAG needed
-        return {
-            "response_text": query_or_clarification,
-            "citations": [],
-            "answer": query_or_clarification,
-            "sources_used": [],
-            "response_type": "clarification",
-        }
-
-    # 1. RETRIEVE from Qdrant using the rewritten query
+    # 1. RETRIEVE from Qdrant
     try:
-        search_results = search_qdrant(query_or_clarification, domain_filter=req.domain)
+        search_results = search_qdrant(req.message, domain_filter=req.domain)
     except Exception as e:
         logger.error(f"Qdrant search failed: {e}")
         raise HTTPException(status_code=503, detail="Vector database unavailable. Is Qdrant running?")
@@ -685,24 +377,9 @@ def chat_stream(req: ChatRequest):
     logger.info(f"Stream request: '{req.message}' [domain={req.domain}]")
     history = truncate_history(req.history)
 
-    # Phase A: Triage — decide whether to search or ask a clarifying question
-    should_search, query_or_clarification = triage_request(req.domain, history, req.message)
-
-    if not should_search:
-        # Stream the clarifying question directly — no RAG, no embedding
-        def clarification_generator():
-            # Stream word by word so the typing animation works
-            words = query_or_clarification.split(" ")
-            for i, word in enumerate(words):
-                token = word + (" " if i < len(words) - 1 else "")
-                yield f"data: {json.dumps({'token': token})}\n\n"
-            yield f"data: {json.dumps({'done': True, 'citations': [], 'response_type': 'clarification'})}\n\n"
-
-        return StreamingResponse(clarification_generator(), media_type="text/event-stream")
-
-    # Phase B: RAG search + full answer
+    # RAG search + full answer
     try:
-        search_results = search_qdrant(query_or_clarification, domain_filter=req.domain)
+        search_results = search_qdrant(req.message, domain_filter=req.domain)
     except Exception as e:
         logger.error(f"Qdrant search failed: {e}")
         raise HTTPException(status_code=503, detail="Vector database unavailable.")
