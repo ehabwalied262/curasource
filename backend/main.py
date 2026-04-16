@@ -32,6 +32,10 @@ SUPABASE_ANON_KEY = (os.getenv("SUPABASE_ANON_KEY") or "").strip()
 
 if not HF_TOKEN:
     logger.error("HF_TOKEN not found! Make sure it is set in your .env file.")
+if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+    logger.warning("SUPABASE_URL or SUPABASE_ANON_KEY not set — query logging disabled.")
+else:
+    logger.info(f"Supabase logging enabled → {SUPABASE_URL}")
 
 # --------------- Rate Limiter ---------------
 limiter = Limiter(key_func=get_remote_address)
