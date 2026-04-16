@@ -1,13 +1,17 @@
+import re
 import uvicorn
 import json
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Literal, AsyncGenerator
 from huggingface_hub import InferenceClient
 from loguru import logger
 from dotenv import load_dotenv
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import os
 
 # Load the .env file
@@ -26,6 +30,29 @@ ELEVENLABS_VOICE_ID = "EXAVITQu4vr4xnSDxMaL"  # Sarah - Mature, Reassuring
 
 if not HF_TOKEN:
     logger.error("HF_TOKEN not found! Make sure it is set in your .env file.")
+
+# --------------- Rate Limiter ---------------
+limiter = Limiter(key_func=get_remote_address)
+
+# --------------- Prompt injection guard ---------------
+_INJECTION_PATTERNS = re.compile(
+    r"ignore (previous|all|prior|above) (instructions?|rules?|prompt)|"
+    r"disregard (your|all|the) (instructions?|rules?|constraints?)|"
+    r"you are now|act as (an? )?(un|evil|jailbreak)|"
+    r"do anything now|dan mode|developer mode|jailbreak|"
+    r"system prompt:|<\|im_start\|>|<\|im_end\|>|\[INST\]|\[\/INST\]",
+    re.IGNORECASE,
+)
+
+MAX_MESSAGE_LENGTH = 1500  # hard cap below the Pydantic max_length
+
+def check_input(text: str) -> str:
+    """Raise 400 if the input looks like a prompt injection attempt."""
+    if len(text) > MAX_MESSAGE_LENGTH:
+        raise HTTPException(status_code=400, detail="Message too long.")
+    if _INJECTION_PATTERNS.search(text):
+        raise HTTPException(status_code=400, detail="Input contains disallowed content.")
+    return text
 
 # --------------- ML Models ---------------
 from qdrant_client import QdrantClient
@@ -72,12 +99,15 @@ app = FastAPI(
     version="0.1.0",
 )
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["POST", "GET"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 # --------------- Domain Prompts ---------------
@@ -320,8 +350,10 @@ def search_qdrant(text: str, domain_filter: Optional[str] = None, limit: int = 1
 
 # --------------- Endpoints ---------------
 @app.post("/chat")
-def chat(req: ChatRequest):
-    logger.info(f"Chat request: '{req.message}' [domain={req.domain}]")
+@limiter.limit("10/minute")
+def chat(request: Request, req: ChatRequest):
+    check_input(req.message)
+    logger.info(f"Chat request: '{req.message[:80]}' [domain={req.domain}]")
     history = truncate_history(req.history)
 
     # 1. RETRIEVE from Qdrant
@@ -372,9 +404,11 @@ def chat(req: ChatRequest):
 
 
 @app.post("/chat/stream")
-def chat_stream(req: ChatRequest):
+@limiter.limit("10/minute")
+def chat_stream(request: Request, req: ChatRequest):
     """Streaming endpoint — sends tokens via SSE as they arrive from Llama 3."""
-    logger.info(f"Stream request: '{req.message}' [domain={req.domain}]")
+    check_input(req.message)
+    logger.info(f"Stream request: '{req.message[:80]}' [domain={req.domain}]")
     history = truncate_history(req.history)
 
     # RAG search + full answer
@@ -422,7 +456,8 @@ class TTSRequest(BaseModel):
     text: str = Field(..., max_length=5000)
 
 @app.post("/tts")
-def tts(req: TTSRequest):
+@limiter.limit("5/minute")
+def tts(request: Request, req: TTSRequest):
     """Proxy TTS request to ElevenLabs — keeps API key server-side."""
     if not ELEVENLABS_API_KEY:
         logger.error("ELEVENLABS_API_KEY is not set")
