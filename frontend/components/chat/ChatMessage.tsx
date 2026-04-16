@@ -76,7 +76,7 @@ export function ChatMessage({ message }: { message: Message }) {
                                     autoFocus
                                     rows={3}
                                     className="w-full bg-[#2a2a2a] border border-white/20 rounded-lg px-4 py-3 text-stone-100 resize-none focus:outline-none focus:border-emerald-500/50"
-                                    style={{ fontFamily: "var(--font-tiempos, Georgia, serif)", fontSize: "17px", lineHeight: 1.9 }}
+                                    style={{ fontSize: "17px", lineHeight: 1.9 }}
                                 />
                                 <div className="flex items-center gap-2">
                                     <button
@@ -97,7 +97,7 @@ export function ChatMessage({ message }: { message: Message }) {
                             <div className="flex items-start gap-2">
                                 <p
                                     className="flex-1 text-stone-100"
-                                    style={{ fontFamily: "var(--font-tiempos, Georgia, serif)", fontSize: "17px", lineHeight: 2 }}
+                                    style={{ fontSize: "17px", lineHeight: 2 }}
                                 >
                                     {message.content}
                                 </p>
@@ -129,7 +129,6 @@ export function ChatMessage({ message }: { message: Message }) {
                                     prose-ul:my-3 prose-ol:my-3
                                     text-stone-200"
                                 style={{
-                                    fontFamily: "var(--font-tiempos, Georgia, serif)",
                                     fontSize: "17px",
                                     lineHeight: 2,
                                     letterSpacing: "0.01em",

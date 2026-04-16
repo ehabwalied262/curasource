@@ -119,7 +119,7 @@ export function ChatInterface() {
                         disabled={isLoading}
                         placeholder={`Ask a ${domain} question...`}
                         className="w-full h-12 md:h-14 pl-4 pr-14 rounded-xl border-white/10 bg-[#2a2a2a] text-stone-100 placeholder:text-stone-500 focus-visible:ring-emerald-500/50"
-                        style={{ fontFamily: "var(--font-tiempos, Georgia, serif)", fontSize: "16px" }}
+                        style={{ fontSize: "16px" }}
                     />
                     <Button
                         onClick={handleSend}
