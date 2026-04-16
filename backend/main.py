@@ -537,6 +537,11 @@ def tts(request: Request, req: TTSRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/")
+def root():
+    return {"status": "ok"}
+
+
 @app.get("/health")
 def health_check():
     """Health check for deployment platforms."""
