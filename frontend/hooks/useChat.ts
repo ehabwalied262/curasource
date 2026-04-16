@@ -1,6 +1,7 @@
 import { useChatStore } from "@/stores/chatStore";
 import { Message, Citation } from "@/types";
 import { ENDPOINTS } from "@/lib/api";
+import { useRef } from "react";
 
 /** Drains a token queue at a smooth, readable pace */
 function createTokenBuffer(onToken: (t: string) => void) {
@@ -61,8 +62,15 @@ export function useChat() {
         setStreaming,
     } = useChatStore();
 
+    const abortControllerRef = useRef<AbortController | null>(null);
+
+    const stopStreaming = () => {
+        abortControllerRef.current?.abort();
+    };
+
     /** Core stream logic — shared by send, retry, and edit */
     const streamResponse = async (content: string) => {
+        abortControllerRef.current = new AbortController();
         addMessage({ id: crypto.randomUUID(), role: "assistant", content: "" });
         setLoading(true);
         setStreaming(true);
@@ -85,6 +93,7 @@ export function useChat() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ message: content, domain, history }),
+                signal: abortControllerRef.current.signal,
             });
 
             if (!response.ok || !response.body) {
@@ -138,7 +147,11 @@ export function useChat() {
                     pendingCitations
                 );
             }
-        } catch (error) {
+        } catch (error: any) {
+            if (error?.name === "AbortError") {
+                // User stopped the stream — keep whatever was already rendered
+                return;
+            }
             console.error("CuraSource stream error:", error);
             updateLastAssistantMessage(
                 "I'm sorry, I encountered an error connecting to the medical database. Please ensure the backend is running."
@@ -176,5 +189,5 @@ export function useChat() {
         await streamResponse(newContent);
     };
 
-    return { sendMessage, retryMessage, editAndResend };
+    return { sendMessage, retryMessage, editAndResend, stopStreaming };
 }

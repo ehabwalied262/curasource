@@ -10,12 +10,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { SendHorizontal, HeartPulse, Dumbbell, Apple, Menu, PanelLeftOpen } from 'lucide-react';
+import { SendHorizontal, Square, HeartPulse, Dumbbell, Apple, Menu, PanelLeftOpen } from 'lucide-react';
 
 export function ChatInterface() {
     const [input, setInput] = useState("");
-    const { messages, domain, setDomain, isLoading, sidebarOpen, toggleSidebar } = useChatStore();
-    const { sendMessage } = useChat();
+    const { messages, domain, setDomain, isLoading, isStreaming, sidebarOpen, toggleSidebar } = useChatStore();
+    const { sendMessage, stopStreaming } = useChat();
     const scrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -121,13 +121,22 @@ export function ChatInterface() {
                         className="w-full h-12 md:h-14 pl-4 pr-14 rounded-xl border-white/10 bg-[#2a2a2a] text-stone-100 placeholder:text-stone-500 focus-visible:ring-emerald-500/50"
                         style={{ fontSize: "16px" }}
                     />
-                    <Button
-                        onClick={handleSend}
-                        disabled={isLoading || !input.trim()}
-                        className="absolute right-2 top-1.5 h-9 w-9 rounded-lg bg-white hover:bg-stone-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                    >
-                        <SendHorizontal size={15} className="text-[#212121]" />
-                    </Button>
+                    {isStreaming ? (
+                        <Button
+                            onClick={stopStreaming}
+                            className="absolute right-2 top-1.5 h-9 w-9 rounded-lg bg-white hover:bg-stone-200 cursor-pointer"
+                        >
+                            <Square size={13} className="text-[#212121] fill-[#212121]" />
+                        </Button>
+                    ) : (
+                        <Button
+                            onClick={handleSend}
+                            disabled={isLoading || !input.trim()}
+                            className="absolute right-2 top-1.5 h-9 w-9 rounded-lg bg-white hover:bg-stone-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                            <SendHorizontal size={15} className="text-[#212121]" />
+                        </Button>
+                    )}
                 </div>
                 <p className="text-[9px] md:text-[10px] text-center text-stone-600 mt-2 uppercase tracking-widest">
                     Grounded in Harrison&apos;s, Davidson&apos;s, and Clinical Fitness Journals
