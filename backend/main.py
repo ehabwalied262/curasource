@@ -69,7 +69,7 @@ def log_query(query: str, domain: Optional[str], response_length: int, citation_
     if not SUPABASE_URL or not SUPABASE_ANON_KEY:
         return
     try:
-        _httpx.post(
+        resp = _httpx.post(
             f"{SUPABASE_URL}/rest/v1/query_logs",
             headers={
                 "apikey": SUPABASE_ANON_KEY,
@@ -86,6 +86,10 @@ def log_query(query: str, domain: Optional[str], response_length: int, citation_
             },
             timeout=3,
         )
+        if resp.status_code not in (200, 201):
+            logger.warning(f"Query log failed (non-fatal): {resp.status_code} {resp.text[:200]}")
+        else:
+            logger.info("Query logged to Supabase ✓")
     except Exception as exc:
         logger.warning(f"Query log failed (non-fatal): {exc}")
 
