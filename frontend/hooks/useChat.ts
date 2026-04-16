@@ -93,26 +93,36 @@ export function useChat() {
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
+            // Accumulate raw bytes across TCP chunks so large SSE events
+            // (e.g. the final done+citations payload) are never split mid-JSON.
+            let sseBuffer = "";
 
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
 
-                const chunk = decoder.decode(value, { stream: true });
-                for (const line of chunk.split("\n")) {
-                    if (!line.startsWith("data: ")) continue;
-                    try {
-                        const parsed = JSON.parse(line.slice(6));
-                        if (parsed.token) {
-                            buffer.push(parsed.token);
-                        }
-                        if (parsed.done && parsed.citations) {
-                            pendingCitations = parsed.citations as Citation[];
-                        }
-                        if (parsed.error) {
-                            buffer.push("\n\n_Error: " + parsed.error + "_");
-                        }
-                    } catch { /* incomplete JSON chunk */ }
+                sseBuffer += decoder.decode(value, { stream: true });
+
+                // SSE events are separated by \n\n — only process complete events
+                const events = sseBuffer.split("\n\n");
+                sseBuffer = events.pop() ?? ""; // keep any trailing incomplete event
+
+                for (const event of events) {
+                    for (const line of event.split("\n")) {
+                        if (!line.startsWith("data: ")) continue;
+                        try {
+                            const parsed = JSON.parse(line.slice(6));
+                            if (parsed.token) {
+                                buffer.push(parsed.token);
+                            }
+                            if (parsed.done && parsed.citations) {
+                                pendingCitations = parsed.citations as Citation[];
+                            }
+                            if (parsed.error) {
+                                buffer.push("\n\n_Error: " + parsed.error + "_");
+                            }
+                        } catch { /* malformed JSON */ }
+                    }
                 }
             }
 
