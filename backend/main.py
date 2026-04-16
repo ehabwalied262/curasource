@@ -27,6 +27,8 @@ CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:3
 PORT = int((os.getenv("PORT") or "8001").strip())
 ELEVENLABS_API_KEY = (os.getenv("ELEVENLABS_API_KEY") or "").strip()
 ELEVENLABS_VOICE_ID = "EXAVITQu4vr4xnSDxMaL"  # Sarah - Mature, Reassuring
+SUPABASE_URL = (os.getenv("SUPABASE_URL") or "").strip()
+SUPABASE_ANON_KEY = (os.getenv("SUPABASE_ANON_KEY") or "").strip()
 
 if not HF_TOKEN:
     logger.error("HF_TOKEN not found! Make sure it is set in your .env file.")
@@ -53,6 +55,35 @@ def check_input(text: str) -> str:
     if _INJECTION_PATTERNS.search(text):
         raise HTTPException(status_code=400, detail="Input contains disallowed content.")
     return text
+
+# --------------- Analytics / Query Logging ---------------
+import httpx as _httpx
+
+def log_query(query: str, domain: Optional[str], response_length: int, citation_count: int, endpoint: str) -> None:
+    """Fire-and-forget insert into Supabase query_logs table.
+    Truncates the query to 500 chars so we capture intent without storing PII walls of text."""
+    if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+        return
+    try:
+        _httpx.post(
+            f"{SUPABASE_URL}/rest/v1/query_logs",
+            headers={
+                "apikey": SUPABASE_ANON_KEY,
+                "Authorization": f"Bearer {SUPABASE_ANON_KEY}",
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal",
+            },
+            json={
+                "query": query[:500],
+                "domain": domain,
+                "response_length": response_length,
+                "citation_count": citation_count,
+                "endpoint": endpoint,
+            },
+            timeout=3,
+        )
+    except Exception as exc:
+        logger.warning(f"Query log failed (non-fatal): {exc}")
 
 # --------------- ML Models ---------------
 from qdrant_client import QdrantClient
@@ -394,6 +425,8 @@ def chat(request: Request, req: ChatRequest):
     citations = build_citations(search_results)
     sources_used = [{"file": r["source"], "page": r.get("page", 0)} for r in search_results]
 
+    log_query(req.message, req.domain, len(response_text), len(citations), "chat")
+
     return {
         "response_text": response_text,
         "citations": [c.model_dump() for c in citations],
@@ -431,6 +464,7 @@ def chat_stream(request: Request, req: ChatRequest):
     citations = build_citations(search_results)
 
     def token_generator():
+        total_chars = 0
         try:
             for message in hf_client.chat_completion(
                 model="meta-llama/Meta-Llama-3-8B-Instruct",
@@ -440,10 +474,12 @@ def chat_stream(request: Request, req: ChatRequest):
             ):
                 if message.choices and message.choices[0].delta.content:
                     token = message.choices[0].delta.content
+                    total_chars += len(token)
                     yield f"data: {json.dumps({'token': token})}\n\n"
 
             # Final event with citations
             yield f"data: {json.dumps({'done': True, 'citations': [c.model_dump() for c in citations], 'response_type': 'answer'})}\n\n"
+            log_query(req.message, req.domain, total_chars, len(citations), "stream")
 
         except Exception as e:
             logger.error(f"Streaming generation failed: {e}")
